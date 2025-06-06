@@ -1,128 +1,99 @@
 <?php
 /**
  * Pawfect Pet Shop - Category Model
- * Handles product category data and operations
+ * Handles product and pet types
  */
 
-class Category extends Model {
-    protected $table = 'categories';
-    protected $fillable = [
-        'name', 'description', 'slug', 'image', 'parent_id', 
-        'sort_order', 'featured', 'status', 'meta_title', 'meta_description'
-    ];
+class Category {
+    private $pdo;
+    
+    public function __construct() {
+        global $pdo;
+        $this->pdo = $pdo;
+    }
+    
+    public function getAll() {
+        // Get unique types from both products and pets
+        $sql = "SELECT DISTINCT type FROM products WHERE type IS NOT NULL AND type != ''
+                UNION
+                SELECT DISTINCT type FROM pets WHERE type IS NOT NULL AND type != ''
+                ORDER BY type ASC";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
     
     public function getActiveCategories() {
-        return $this->where(['status' => 'active'], 'sort_order ASC, name ASC');
+        return $this->getAll(); // All types are active
     }
     
     public function getFeaturedCategories($limit = 6) {
-        $sql = "SELECT * FROM {$this->table} WHERE status = 'active' AND featured = 1 ORDER BY sort_order ASC, name ASC LIMIT {$limit}";
-        return db_select($sql);
+        // Get types with most products/pets
+        $sql = "SELECT type, COUNT(*) as count FROM (
+                    SELECT type FROM products WHERE type IS NOT NULL AND type != ''
+                    UNION ALL
+                    SELECT type FROM pets WHERE type IS NOT NULL AND type != ''
+                ) combined
+                GROUP BY type
+                ORDER BY count DESC
+                LIMIT ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$limit]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
     
     public function getParentCategories() {
-        return $this->where(['parent_id' => null, 'status' => 'active'], 'sort_order ASC, name ASC');
+        return $this->getAll(); // All types are parent categories
     }
     
     public function getSubCategories($parentId) {
-        return $this->where(['parent_id' => $parentId, 'status' => 'active'], 'sort_order ASC, name ASC');
+        return []; // No subcategories in type-based system
     }
     
-    public function getCategoryWithProducts($id) {
-        $category = $this->find($id);
-        
-        if (!$category) {
-            return null;
-        }
-        
+    public function getCategoryWithProducts($type) {
         $productModel = new Product();
-        $products = $productModel->getProductsByCategory($id);
+        $products = $productModel->getByType($type);
         
         return [
-            'category' => $category,
+            'category' => ['name' => ucfirst($type), 'type' => $type],
             'products' => $products
         ];
     }
     
     public function getCategoryStats() {
-        return [
-            'total' => $this->count(),
-            'active' => $this->count(['status' => 'active']),
-            'inactive' => $this->count(['status' => 'inactive']),
-            'featured' => $this->count(['featured' => 1, 'status' => 'active']),
-            'parent_categories' => $this->count(['parent_id' => null, 'status' => 'active'])
-        ];
+        $sql = "SELECT 
+                COUNT(DISTINCT type) as total,
+                COUNT(DISTINCT CASE WHEN type IN ('dogs', 'cats') THEN type END) as pets,
+                COUNT(DISTINCT CASE WHEN type NOT IN ('dogs', 'cats') THEN type END) as products
+                FROM (
+                    SELECT type FROM products WHERE type IS NOT NULL AND type != ''
+                    UNION
+                    SELECT type FROM pets WHERE type IS NOT NULL AND type != ''
+                ) combined";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetch();
     }
     
     public function getCategoriesWithProductCount() {
-        $sql = "
-            SELECT c.*, COUNT(p.id) as product_count
-            FROM {$this->table} c
-            LEFT JOIN products p ON c.id = p.category_id AND p.status = 'active'
-            WHERE c.status = 'active'
-            GROUP BY c.id
-            ORDER BY c.sort_order ASC, c.name ASC
-        ";
-        
-        return db_select($sql);
+        $sql = "SELECT 
+                type,
+                COUNT(*) as product_count
+                FROM (
+                    SELECT type FROM products WHERE type IS NOT NULL AND type != ''
+                    UNION ALL
+                    SELECT type FROM pets WHERE type IS NOT NULL AND type != ''
+                ) combined
+                GROUP BY type
+                ORDER BY type ASC";
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll();
     }
     
-    public function generateSlug($name, $excludeId = null) {
-        $slug = str_slug($name);
-        $originalSlug = $slug;
-        $counter = 1;
-        
-        do {
-            $sql = "SELECT COUNT(*) as count FROM {$this->table} WHERE slug = :slug";
-            $params = ['slug' => $slug];
-            
-            if ($excludeId) {
-                $sql .= " AND id != :exclude_id";
-                $params['exclude_id'] = $excludeId;
-            }
-            
-            $result = db_select_one($sql, $params);
-            
-            if ($result['count'] > 0) {
-                $slug = $originalSlug . '-' . $counter;
-                $counter++;
-            }
-        } while ($result['count'] > 0);
-        
-        return $slug;
+    public function generateSlug($name) {
+        return strtolower(str_replace(' ', '-', $name));
     }
     
-    public function isSlugTaken($slug, $excludeId = null) {
-        $sql = "SELECT COUNT(*) as count FROM {$this->table} WHERE slug = :slug";
-        $params = ['slug' => $slug];
-        
-        if ($excludeId) {
-            $sql .= " AND id != :exclude_id";
-            $params['exclude_id'] = $excludeId;
-        }
-        
-        $result = db_select_one($sql, $params);
-        return $result['count'] > 0;
-    }
-    
-    public function updateSortOrder($categoryId, $sortOrder) {
-        return $this->update($categoryId, ['sort_order' => $sortOrder]);
-    }
-    
-    public function getTopSellingCategories($limit = 10) {
-        $sql = "
-            SELECT c.*, SUM(oi.quantity) as total_sold
-            FROM {$this->table} c
-            INNER JOIN products p ON c.id = p.category_id
-            INNER JOIN order_items oi ON p.id = oi.product_id
-            INNER JOIN orders o ON oi.order_id = o.id
-            WHERE c.status = 'active' AND o.status IN ('delivered', 'shipped')
-            GROUP BY c.id
-            ORDER BY total_sold DESC
-            LIMIT {$limit}
-        ";
-        
-        return db_select($sql);
+    public function isSlugTaken($slug) {
+        return false; // Not using slugs in type-based system
     }
 }
 ?>

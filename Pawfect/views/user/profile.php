@@ -18,7 +18,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="col-md-8">
             <div class="card">
                 <div class="card-header">
@@ -36,33 +36,33 @@
                                 <input type="text" class="form-control" id="last_name" name="last_name" value="<?php echo $user['last_name']; ?>" required>
                             </div>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="email" class="form-label">Email Address</label>
                             <input type="email" class="form-control" id="email" name="email" value="<?php echo $user['email']; ?>" required>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="phone" class="form-label">Phone Number</label>
                             <input type="tel" class="form-control" id="phone" name="phone" value="<?php echo $user['phone']; ?>">
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="avatar" class="form-label">Profile Picture</label>
                             <input type="file" class="form-control" id="avatar" name="avatar" accept="image/*">
                         </div>
-                        
+
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-save"></i> Update Profile
                         </button>
                     </form>
                 </div>
-                
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#deliveryAddressModal">
-                <i class="fas fa-map-marker-alt"></i> Manage Delivery Address
-            </button>
+
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#deliveryAddressModal">
+                    <i class="fas fa-map-marker-alt"></i> Manage Delivery Address
+                </button>
             </div>
-            
+
             <!-- Orders Section -->
             <div class="card mt-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -88,42 +88,41 @@
                                 </thead>
                                 <tbody>
                                     <?php foreach ($orders as $order): ?>
-                                    <tr>
-                                        <td>#<?php echo $order['id']; ?></td>
-                                        <td>₱<?php echo number_format($order['total_amount'], 2); ?></td>
-                                        <td>
-                                            <span class="badge bg-<?php 
-                                                echo $order['status'] === 'delivered' ? 'success' : 
-                                                    ($order['status'] === 'pending' ? 'warning' : ($order['status'] === 'shipped' ? 'info' : 'primary')); 
-                                            ?>">
-                                                <?php echo ucfirst($order['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex flex-column">
-                                                <?php foreach ($order['items'] as $item): ?>
-                                                    <div class="d-flex align-items-center mb-1">
-                                                        <img src="<?php echo BASE_URL . $item['product_image']; ?>" alt="<?php echo $item['name']; ?>" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 4px;">
-                                                        <small class="text-truncate" style="max-width: 200px;" title="<?php echo $item['name']; ?>">
-                                                            <?php echo $item['name']; ?> x<?php echo $item['quantity']; ?>
-                                                        </small>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group gap-2">
-                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewOrderModal<?php echo $order['id']; ?>">
-                                                    <i class="fas fa-eye"></i> View
-                                                </button>
-                                                <?php if ($order['status'] === 'pending'): ?>
-                                                    <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelOrderModal<?php echo $order['id']; ?>">
-                                                        <i class="fas fa-times"></i> Cancel
+                                        <tr>
+                                            <td>#<?php echo $order['id']; ?></td>
+                                            <td>₱<?php echo number_format($order['total_amount'], 2); ?></td>
+                                            <td>
+                                                <span class="badge bg-<?php
+                                                                        echo $order['status'] === 'delivered' ? 'success' : ($order['status'] === 'pending' ? 'warning' : ($order['status'] === 'shipped' ? 'info' : 'primary'));
+                                                                        ?>">
+                                                    <?php echo ucfirst($order['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <?php foreach ($order['items'] as $item): ?>
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <img src="<?php echo BASE_URL . $item['product_image']; ?>" alt="<?php echo $item['name']; ?>" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 4px;">
+                                                            <small class="text-truncate" style="max-width: 200px;" title="<?php echo $item['name']; ?>">
+                                                                <?php echo $item['name']; ?> x<?php echo $item['quantity']; ?>
+                                                            </small>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group gap-2">
+                                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewOrderModal<?php echo $order['id']; ?>">
+                                                        <i class="fas fa-eye"></i> View
                                                     </button>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                                    <?php if ($order['status'] === 'pending'): ?>
+                                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelOrderModal<?php echo $order['id']; ?>">
+                                                            <i class="fas fa-times"></i> Cancel
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -131,21 +130,21 @@
 
                         <!-- Pagination -->
                         <?php if (isset($totalPages) && $totalPages > 1): ?>
-                        <nav aria-label="User orders pagination" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <li class="page-item <?php echo ($currentPage <= 1) ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="<?php echo BASE_URL; ?>/profile?page=<?php echo $currentPage - 1; ?>">Previous</a>
-                                </li>
-                                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                                    <li class="page-item <?php echo ($i == $currentPage) ? 'active' : ''; ?>">
-                                        <a class="page-link" href="<?php echo BASE_URL; ?>/profile?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                            <nav aria-label="User orders pagination" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item <?php echo ($currentPage <= 1) ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="<?php echo BASE_URL; ?>/profile?page=<?php echo $currentPage - 1; ?>">Previous</a>
                                     </li>
-                                <?php endfor; ?>
-                                <li class="page-item <?php echo ($currentPage >= $totalPages) ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="<?php echo BASE_URL; ?>/profile?page=<?php echo $currentPage + 1; ?>">Next</a>
-                                </li>
-                            </ul>
-                        </nav>
+                                    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                        <li class="page-item <?php echo ($i == $currentPage) ? 'active' : ''; ?>">
+                                            <a class="page-link" href="<?php echo BASE_URL; ?>/profile?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?php echo ($currentPage >= $totalPages) ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="<?php echo BASE_URL; ?>/profile?page=<?php echo $currentPage + 1; ?>">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
@@ -176,34 +175,34 @@
                                 </thead>
                                 <tbody>
                                     <?php foreach ($cancelledOrders as $order): ?>
-                                    <tr>
-                                        <td>#<?php echo $order['id']; ?></td>
-                                        <td>₱<?php echo number_format($order['total_amount'], 2); ?></td>
-                                        <td>
-                                            <span class="badge bg-danger">
-                                                <?php echo ucfirst($order['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex flex-column">
-                                                <?php foreach ($order['items'] as $item): ?>
-                                                    <div class="d-flex align-items-center mb-1">
-                                                        <img src="<?php echo BASE_URL . $item['product_image']; ?>" alt="<?php echo $item['name']; ?>" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 4px;">
-                                                        <small class="text-truncate" style="max-width: 200px;" title="<?php echo $item['name']; ?>">
-                                                            <?php echo $item['name']; ?> x<?php echo $item['quantity']; ?>
-                                                        </small>
-                                                    </div>
-                                                <?php endforeach; ?>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group gap-2">
-                                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewOrderModal<?php echo $order['id']; ?>">
-                                                    <i class="fas fa-eye"></i> View
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td>#<?php echo $order['id']; ?></td>
+                                            <td>₱<?php echo number_format($order['total_amount'], 2); ?></td>
+                                            <td>
+                                                <span class="badge bg-danger">
+                                                    <?php echo ucfirst($order['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-column">
+                                                    <?php foreach ($order['items'] as $item): ?>
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <img src="<?php echo BASE_URL . $item['product_image']; ?>" alt="<?php echo $item['name']; ?>" style="width: 30px; height: 30px; object-fit: cover; border-radius: 4px; margin-right: 4px;">
+                                                            <small class="text-truncate" style="max-width: 200px;" title="<?php echo $item['name']; ?>">
+                                                                <?php echo $item['name']; ?> x<?php echo $item['quantity']; ?>
+                                                            </small>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group gap-2">
+                                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewOrderModal<?php echo $order['id']; ?>">
+                                                        <i class="fas fa-eye"></i> View
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -211,22 +210,71 @@
 
                         <!-- Pagination for Cancelled Orders -->
                         <?php if (isset($cancelledTotalPages) && $cancelledTotalPages > 1): ?>
-                        <nav aria-label="Cancelled orders pagination" class="mt-4">
-                            <ul class="pagination justify-content-center">
-                                <li class="page-item <?php echo ($cancelledCurrentPage <= 1) ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="<?php echo BASE_URL; ?>/profile?cancelled_page=<?php echo $cancelledCurrentPage - 1; ?>">Previous</a>
-                                </li>
-                                <?php for ($i = 1; $i <= $cancelledTotalPages; $i++): ?>
-                                    <li class="page-item <?php echo ($i == $cancelledCurrentPage) ? 'active' : ''; ?>">
-                                        <a class="page-link" href="<?php echo BASE_URL; ?>/profile?cancelled_page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                            <nav aria-label="Cancelled orders pagination" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item <?php echo ($cancelledCurrentPage <= 1) ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="<?php echo BASE_URL; ?>/profile?cancelled_page=<?php echo $cancelledCurrentPage - 1; ?>">Previous</a>
                                     </li>
-                                <?php endfor; ?>
-                                <li class="page-item <?php echo ($cancelledCurrentPage >= $cancelledTotalPages) ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="<?php echo BASE_URL; ?>/profile?cancelled_page=<?php echo $cancelledCurrentPage + 1; ?>">Next</a>
-                                </li>
-                            </ul>
-                        </nav>
+                                    <?php for ($i = 1; $i <= $cancelledTotalPages; $i++): ?>
+                                        <li class="page-item <?php echo ($i == $cancelledCurrentPage) ? 'active' : ''; ?>">
+                                            <a class="page-link" href="<?php echo BASE_URL; ?>/profile?cancelled_page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                        </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?php echo ($cancelledCurrentPage >= $cancelledTotalPages) ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="<?php echo BASE_URL; ?>/profile?cancelled_page=<?php echo $cancelledCurrentPage + 1; ?>">Next</a>
+                                    </li>
+                                </ul>
+                            </nav>
                         <?php endif; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Adopted Pets Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">My Adopted Pets</h5>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($adoptedPets)): ?>
+                        <p class="text-muted">You haven't adopted any pets yet.</p>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Pet</th>
+                                        <th>Type</th>
+                                        <th>Breed</th>
+                                        <th>Age</th>
+                                        <th>Gender</th>
+                                        <th>Adoption Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($adoptedPets as $pet): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <img src="<?php echo BASE_URL . $pet['pet_image']; ?>"
+                                                        alt="<?php echo $pet['name']; ?>"
+                                                        class="rounded-circle me-2"
+                                                        style="width: 40px; height: 40px; object-fit: cover;">
+                                                    <div>
+                                                        <div class="fw-bold"><?php echo $pet['name']; ?></div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td><span class="badge bg-info"><?php echo ucfirst($pet['type']); ?></span></td>
+                                            <td><?php echo ucfirst($pet['breed']); ?></td>
+                                            <td><?php echo $pet['age']; ?> years</td>
+                                            <td><?php echo ucfirst($pet['gender']); ?></td>
+                                            <td><?php echo date('M d, Y H:i A', strtotime($pet['adoption_date'])); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -248,12 +296,11 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <h6>Order Information</h6>
-                            <p><strong>Order Date:</strong> <?php echo $order['order_date'] ? date('M d, Y', strtotime($order['order_date'])) : '-'; ?></p>
-                            <p><strong>Status:</strong> 
-                                <span class="badge bg-<?php 
-                                    echo $order['status'] === 'delivered' ? 'success' : 
-                                        ($order['status'] === 'pending' ? 'warning' : ($order['status'] === 'shipped' ? 'info' : 'primary')); 
-                                ?>">
+                            <p><strong>Order Date:</strong> <?php echo $order['order_date'] ? date('M d, Y H:i A', strtotime($order['order_date'])) : '-'; ?></p>
+                            <p><strong>Status:</strong>
+                                <span class="badge bg-<?php
+                                                        echo $order['status'] === 'delivered' ? 'success' : ($order['status'] === 'pending' ? 'warning' : ($order['status'] === 'shipped' ? 'info' : 'primary'));
+                                                        ?>">
                                     <?php echo ucfirst($order['status']); ?>
                                 </span>
                             </p>
@@ -312,30 +359,30 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Cancel Order Modal -->
     <?php if ($order['status'] === 'pending'): ?>
-    <div class="modal fade" id="cancelOrderModal<?php echo $order['id']; ?>" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Cancel Order #<?php echo $order['id']; ?></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to cancel this order?</p>
-                    <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="POST">
-                        <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                        <input type="hidden" name="action" value="cancel_order">
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Order</button>
-                            <button type="submit" class="btn btn-danger">Yes, Cancel Order</button>
-                        </div>
-                    </form>
+        <div class="modal fade" id="cancelOrderModal<?php echo $order['id']; ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Cancel Order #<?php echo $order['id']; ?></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to cancel this order?</p>
+                        <form action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="POST">
+                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
+                            <input type="hidden" name="action" value="cancel_order">
+                            <div class="text-end">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Order</button>
+                                <button type="submit" class="btn btn-danger">Yes, Cancel Order</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     <?php endif; ?>
 <?php endforeach; ?>
 
@@ -353,8 +400,8 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <h6>Order Information</h6>
-                            <p><strong>Order Date:</strong> <?php echo $order['order_date'] ? date('M d, Y', strtotime($order['order_date'])) : '-'; ?></p>
-                            <p><strong>Status:</strong> 
+                            <p><strong>Order Date:</strong> <?php echo $order['order_date'] ? date('M d, Y H:i A', strtotime($order['order_date'])) : '-'; ?></p>
+                            <p><strong>Status:</strong>
                                 <span class="badge bg-danger">
                                     <?php echo ucfirst($order['status']); ?>
                                 </span>
@@ -417,29 +464,29 @@
 <?php endforeach; ?>
 
 <style>
-.pagination .page-link {
-    border-radius: 8px;
-    border: none;
-    color: #FF8C00;
-}
+    .pagination .page-link {
+        border-radius: 8px;
+        border: none;
+        color: #FF8C00;
+    }
 
-.pagination .page-link:hover {
-    background: #FF8C00;
-    color: white;
-}
+    .pagination .page-link:hover {
+        background: #FF8C00;
+        color: white;
+    }
 
-.pagination .page-item.active .page-link {
-    background: #FF8C00;
-    border-color: #FF8C00;
-}
+    .pagination .page-item.active .page-link {
+        background: #FF8C00;
+        border-color: #FF8C00;
+    }
 
-.modal {
-    backdrop-filter: blur(0.5px);
-}
+    .modal {
+        backdrop-filter: blur(0.5px);
+    }
 
-.modal-content {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-}
+    .modal-content {
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
 </style>
 
 <!-- Delivery Address Modal -->

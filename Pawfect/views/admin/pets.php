@@ -3,31 +3,7 @@
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-2">
-            <div class="card">
-                <div class="card-header gradient-bg text-white">
-                    <h6 class="mb-0">Admin Menu</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="<?php echo BASE_URL; ?>/admin" class="list-group-item list-group-item-action">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/pets" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-paw"></i> Manage Pets
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/products" class="list-group-item list-group-item-action">
-                        <i class="fas fa-box"></i> Manage Products
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/orders" class="list-group-item list-group-item-action">
-                        <i class="fas fa-shopping-cart"></i> Manage Orders
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/users" class="list-group-item list-group-item-action">
-                        <i class="fas fa-users"></i> Manage Users
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/settings" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                </div>
-            </div>
+            <?php require_once 'views/layout/admin_sidebar.php'; ?>
         </div>
         
         <div class="col-md-10">
@@ -93,6 +69,7 @@
                                     <th>Gender</th>
                                     <th>Age</th>
                                     <th>Breed</th>
+                                    <th>Price</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -110,6 +87,7 @@
                                     <td><?php echo ucfirst($pet['gender']); ?></td>
                                     <td><?php echo $pet['age']; ?> years</td>
                                     <td><?php echo $pet['breed']; ?></td>
+                                    <td>₱<?php echo number_format($pet['price'], 2); ?></td>
                                     <td>
                                         <?php if ($pet['is_adopted']): ?>
                                             <span class="badge bg-success">Adopted</span>
@@ -227,6 +205,11 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Price (₱)</label>
+                        <input type="number" class="form-control" name="price" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea class="form-control" name="description" rows="3" placeholder="Enter pet's description, personality, and any special needs..."></textarea>
                     </div>
@@ -294,6 +277,11 @@
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Price (₱)</label>
+                        <input type="number" class="form-control" name="price" id="edit_price" min="0" step="0.01" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Description</label>
                         <textarea class="form-control" name="description" id="edit_description" rows="3" placeholder="Enter pet's description, personality, and any special needs..."></textarea>
                     </div>
@@ -316,6 +304,7 @@ function editPet(pet) {
     document.getElementById('edit_gender').value = pet.gender;
     document.getElementById('edit_age').value = pet.age;
     document.getElementById('edit_breed').value = pet.breed;
+    document.getElementById('edit_price').value = pet.price;
     document.getElementById('edit_description').value = pet.description;
     document.getElementById('edit_current_pet_image').value = pet.pet_image;
     

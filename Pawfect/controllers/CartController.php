@@ -18,12 +18,13 @@ class CartController extends Controller {
         }
         
         $cartModel = new Cart();
-        $items = $cartModel->getItems($_SESSION['user_id']);
+        $cartItems = $cartModel->getItems($_SESSION['user_id']);
         $total = $cartModel->getTotal($_SESSION['user_id']);
         
         $this->view('cart/index', [
-            'items' => $items,
-            'total' => $total
+            'cartItems' => $cartItems,
+            'total' => $total,
+            'pageTitle' => 'Cart'
         ]);
     }
     
@@ -42,30 +43,72 @@ class CartController extends Controller {
             $productId = $_POST['product_id'];
             $quantity = $_POST['quantity'] ?? 1;
             
+            // Debug log
             $cartModel = new Cart();
             if ($cartModel->addItem($_SESSION['user_id'], $productId, $quantity)) {
+                // Get updated cart count
+                $cartCount = $cartModel->getItemCount($_SESSION['user_id']);
+                
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'message' => 'Item added to cart']);
+                echo json_encode([
+                    'success' => true, 
+                    'message' => 'Item added to cart',
+                    'cart_count' => $cartCount
+                ]);
             } else {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Failed to add item']);
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Failed to add item to cart'
+                ]);
             }
+            return;
         }
     }
     
     public function update() {
         if (!isLoggedIn()) {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Please login first']);
+                return;
+            }
             $this->redirect('/login');
             return;
         }
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $productId = $_POST['product_id'];
-            $quantity = $_POST['quantity'];
+            $quantity = (int)$_POST['quantity'];
+            
+            // Get product stock quantity
+            $productModel = new Product();
+            $product = $productModel->getById($productId);
+            
+            if (!$product) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Product not found']);
+                return;
+            }
+            
+            if ($quantity > $product['stock_quantity']) {
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false, 
+                    'message' => "Only {$product['stock_quantity']} items available in stock"
+                ]);
+                return;
+            }
             
             $cartModel = new Cart();
-            $cartModel->updateQuantity($_SESSION['user_id'], $productId, $quantity);
-            $this->redirect('/cart');
+            if ($cartModel->updateQuantity($_SESSION['user_id'], $productId, $quantity)) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true]);
+            } else {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Failed to update quantity']);
+            }
+            return;
         }
     }
     
@@ -80,6 +123,23 @@ class CartController extends Controller {
             
             $cartModel = new Cart();
             $cartModel->removeItem($_SESSION['user_id'], $productId);
+            $this->redirect('/cart');
+        }
+    }
+
+    public function removeSelected() {
+        if (!isLoggedIn()) {
+            $this->redirect('/login');
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['product_ids']) && is_array($_POST['product_ids'])) {
+            $cartModel = new Cart();
+            foreach ($_POST['product_ids'] as $productId) {
+                $cartModel->removeItem($_SESSION['user_id'], $productId);
+            }
+            $this->redirect('/cart');
+        } else {
             $this->redirect('/cart');
         }
     }
@@ -130,7 +190,8 @@ class CartController extends Controller {
             'items' => $items,
             'total' => $total,
             'user' => $user,
-            'delivery_address' => $deliveryAddress
+            'delivery_address' => $deliveryAddress,
+            'pageTitle' => 'Checkout'
         ]);
     }
 

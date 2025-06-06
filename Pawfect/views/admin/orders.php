@@ -16,31 +16,7 @@
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-2">
-            <div class="card">
-                <div class="card-header gradient-bg text-white">
-                    <h6 class="mb-0">Admin Menu</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="<?php echo BASE_URL; ?>/admin" class="list-group-item list-group-item-action">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/pets" class="list-group-item list-group-item-action">
-                        <i class="fas fa-paw"></i> Manage Pets
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/products" class="list-group-item list-group-item-action">
-                        <i class="fas fa-box"></i> Manage Products
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/orders" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-shopping-cart"></i> Manage Orders
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/users" class="list-group-item list-group-item-action">
-                        <i class="fas fa-users"></i> Manage Users
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/settings" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                </div>
-            </div>
+            <?php require_once 'views/layout/admin_sidebar.php'; ?>
         </div>
 
         <div class="col-md-10">
@@ -91,94 +67,91 @@
                                 <tr>
                                     <th>Order ID</th>
                                     <th>Customer</th>
-                                    <th>Email</th>
-                                    <th>Total</th>
+                                    <th>Total Amount</th>
                                     <th>Status</th>
-                                    <th>Order Date</th>
                                     <th>Shipped Date</th>
-                                    <th>Delivery Address</th>
-                                    <th>Payment</th>
+                                    <th>Delivered Date</th>
+                                    <th>Cancelled Date</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($orders as $order): ?>
-                                    <tr>
-                                        <td>#<?php echo $order['id']; ?></td>
-                                        <td><?php echo $order['first_name'] . ' ' . $order['last_name']; ?></td>
-                                        <td><?php echo $order['email']; ?></td>
-                                        <td>₱<?php echo number_format($order['total_amount'], 2); ?></td>
-                                        <td>
-                                            <span class=" badge bg-<?php
-                                                echo $order['status'] === 'delivered' ? 'success' : ($order['status'] === 'pending' ? 'warning' : ($order['status'] === 'shipped' ? 'info' : ($order['status'] === 'cancelled' ? 'danger' : 'primary')));
-                                            ?>">
-                                                <?php echo ucfirst($order['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td><?php echo $order['order_date'] ? date('M d, Y', strtotime($order['order_date'])) : '-'; ?></td>
-                                        <td><?php echo $order['shipped_date'] ? date('M d, Y', strtotime($order['shipped_date'])) : '-'; ?></td>
-                                        <td>
-                                            <small>
-                                                <?php if (!empty($order['delivery_address'])): ?>
-                                                    <?php echo htmlspecialchars($order['delivery_address']['street']) . ', '; ?>
-                                                    <?php echo htmlspecialchars($order['delivery_address']['city']) . ', '; ?>
-                                                    <?php echo htmlspecialchars($order['delivery_address']['barangay']) . ' '; ?>
-                                                    <?php echo htmlspecialchars($order['delivery_address']['zipcode']); ?>
-                                                <?php else: ?>
-                                                    -
-                                                <?php endif; ?>
-                                            </small>
-                                        </td>
-                                        <td><?php echo $order['payment_method'] ?? '-'; ?></td>
-                                        <td>
-                                            <div class="btn-group">
-                                                <button class="btn btn-sm btn-outline-primary dropdown-toggle"
-                                                    data-bs-toggle="dropdown">
-                                                    Update Status
-                                                </button>
-                                                <ul class="dropdown-menu">
-                                                    <li>
-                                                        <form method="POST" class="d-inline">
-                                                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                            <input type="hidden" name="status" value="pending">
-                                                            <button type="submit" class="dropdown-item">Pending</button>
-                                                        </form>
-                                                    </li>
-                                                    <li>
-                                                        <form method="POST" class="d-inline">
-                                                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                            <input type="hidden" name="status" value="processing">
-                                                            <button type="submit" class="dropdown-item">Processing</button>
-                                                        </form>
-                                                    </li>
-                                                    <li>
-                                                        <form method="POST" class="d-inline">
-                                                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                            <input type="hidden" name="status" value="shipped">
-                                                            <button type="submit" class="dropdown-item">Shipped</button>
-                                                        </form>
-                                                    </li>
-                                                    <li>
-                                                        <form method="POST" class="d-inline">
-                                                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                            <input type="hidden" name="status" value="delivered">
-                                                            <button type="submit" class="dropdown-item">Delivered</button>
-                                                        </form>
-                                                    </li>
-                                                    <li>
-                                                        <hr class="dropdown-divider">
-                                                    </li>
-                                                    <li>
-                                                        <form method="POST" class="d-inline" onsubmit="return confirm('Cancel this order?')">
-                                                            <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
-                                                            <input type="hidden" name="status" value="cancelled">
-                                                            <button type="submit" class="dropdown-item text-danger">Cancel Order</button>
-                                                        </form>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                <tr>
+                                    <td>#<?php echo $order['id']; ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($order['first_name'] . ' ' . $order['last_name']); ?><br>
+                                        <small class="text-muted"><?php echo htmlspecialchars($order['email']); ?></small>
+                                    </td>
+                                    <td>₱<?php echo number_format($order['total_amount'], 2); ?></td>
+                                    <td>
+                                        <span class="badge bg-<?php 
+                                            echo match($order['status']) {
+                                                'processing' => 'warning',
+                                                'shipped' => 'info',
+                                                'delivered' => 'success',
+                                                'cancelled' => 'danger',
+                                                default => 'secondary'
+                                            };
+                                        ?>">
+                                            <?php echo ucfirst($order['status']); ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php echo $order['shipped_date'] ? date('M d, Y h:i A', strtotime($order['shipped_date'])) : '-'; ?>
+                                    </td>
+                                    <td>
+                                        <?php echo $order['delivery_date'] ? date('M d, Y h:i A', strtotime($order['delivery_date'])) : '-'; ?>
+                                    </td>
+                                    <td>
+                                        <?php echo $order['cancelled_date'] ? date('M d, Y h:i A', strtotime($order['cancelled_date'])) : '-'; ?>
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                Update Status
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#updateStatusModal" 
+                                                       data-order-id="<?php echo $order['id']; ?>"
+                                                       data-status="pending">
+                                                        <i class="fas fa-clock text-warning"></i> Pending
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#updateStatusModal"
+                                                       data-order-id="<?php echo $order['id']; ?>"
+                                                       data-status="processing">
+                                                        <i class="fas fa-cog text-info"></i> Processing
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#updateStatusModal"
+                                                       data-order-id="<?php echo $order['id']; ?>"
+                                                       data-status="shipped">
+                                                        <i class="fas fa-shipping-fast text-primary"></i> Shipped
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#updateStatusModal"
+                                                       data-order-id="<?php echo $order['id']; ?>"
+                                                       data-status="delivered">
+                                                        <i class="fas fa-check text-success"></i> Delivered
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#updateStatusModal"
+                                                       data-order-id="<?php echo $order['id']; ?>"
+                                                       data-status="cancelled">
+                                                        <i class="fas fa-ban text-danger"></i> Cancel Order
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -205,6 +178,72 @@
         </div>
     </div>
 </div>
+
+<!-- Update Status Modal -->
+<div class="modal fade" id="updateStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Order Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="updateStatusForm" action="<?php echo BASE_URL; ?>/admin/orders/update-status" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="order_id" id="updateOrderId">
+                    <input type="hidden" name="status" id="updateStatus">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Admin Notes</label>
+                        <textarea name="admin_notes" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Success</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center">
+                    <i class="fas fa-check-circle text-success" style="font-size: 48px;"></i>
+                    <p class="mt-3">Order status has been updated successfully!</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updateStatusModal = document.getElementById('updateStatusModal');
+    
+    if (updateStatusModal) {
+        updateStatusModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const orderId = button.getAttribute('data-order-id');
+            const status = button.getAttribute('data-status');
+            
+            document.getElementById('updateOrderId').value = orderId;
+            document.getElementById('updateStatus').value = status;
+            document.querySelector('textarea[name="admin_notes"]').value = '';
+        });
+    }
+});
+</script>
 
 <style>
 .pagination .page-link {

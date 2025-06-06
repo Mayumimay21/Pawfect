@@ -24,6 +24,20 @@ class PetController extends Controller {
         $pets = $petModel->getPaginated($limit, $offset, $type, $gender, null, $minAge, $maxAge, $query);
         $totalPets = $petModel->getTotalCount($type, $gender, null, $minAge, $maxAge, $query);
         
+        // Initialize in_pawket as false for all pets
+        foreach ($pets as &$pet) {
+            $pet['in_pawket'] = false;
+        }
+        
+        // Update pawket status for each pet if user is logged in
+        if (isset($_SESSION['user_id'])) {
+            require_once 'models/Pawket.php';
+            $pawketModel = new Pawket();
+            foreach ($pets as &$pet) {
+                $pet['in_pawket'] = $pawketModel->isInPawket($_SESSION['user_id'], $pet['id']);
+            }
+        }
+        
         error_log("PetController index - Total pets: $totalPets");
         
         // Calculate total pages
@@ -39,7 +53,8 @@ class PetController extends Controller {
             'filterType' => $type,
             'filterGender' => $gender,
             'filterMinAge' => $minAge,
-            'filterMaxAge' => $maxAge
+            'filterMaxAge' => $maxAge,
+            'pageTitle' => 'Adopt Pets'
         ]);
     }
     
@@ -52,8 +67,19 @@ class PetController extends Controller {
             return;
         }
         
+        // Initialize in_pawket as false by default
+        $pet['in_pawket'] = false;
+        
+        // Check pawket status if user is logged in
+        if (isset($_SESSION['user_id'])) {
+            require_once 'models/Pawket.php';
+            $pawketModel = new Pawket();
+            $pet['in_pawket'] = $pawketModel->isInPawket($_SESSION['user_id'], $pet['id']);
+        }
+        
         $this->view('pets/show', [
-            'pet' => $pet
+            'pet' => $pet,
+            'pageTitle' => $pet['name'] . ' - Pet Details'
         ]);
     }
     
@@ -67,12 +93,30 @@ class PetController extends Controller {
             $petId = $_POST['pet_id'];
             $userId = $_SESSION['user_id'];
             
+            // Get pet details
             $petModel = new Pet();
-            if ($petModel->adopt($petId, $userId)) {
-                $_SESSION['success'] = 'Pet adopted successfully!';
-                $this->redirect('/adopted-pets');
+            $pet = $petModel->getById($petId);
+            
+            if (!$pet) {
+                setFlashMessage('error', 'Pet not found.');
+                $this->redirect('/pets');
+                return;
+            }
+            
+            // Create pet order
+            $petOrderModel = new PetOrder();
+            $orderId = $petOrderModel->createOrder(
+                $userId,
+                $petId,
+                $pet['price'],
+                'COD' // Default payment method
+            );
+            
+            if ($orderId) {
+                setFlashMessage('success', 'Adoption request submitted successfully!');
+                $this->redirect('/pet-orders/show/' . $orderId);
             } else {
-                $_SESSION['error'] = 'Failed to adopt pet.';
+                setFlashMessage('error', 'Failed to submit adoption request.');
                 $this->redirect('/pet/' . $petId);
             }
         }
@@ -83,7 +127,8 @@ class PetController extends Controller {
         $adoptedPets = $petModel->getAdoptedPets();
         
         $this->view('pets/adopted', [
-            'adoptedPets' => $adoptedPets
+            'adoptedPets' => $adoptedPets,
+            'pageTitle' => 'Adopted Pets'
         ]);
     }
 }

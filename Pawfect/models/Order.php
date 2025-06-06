@@ -5,6 +5,7 @@
  */
 
 require_once 'models/Product.php';
+require_once 'models/Cart.php';
 
 class Order extends Model {
     protected $table = 'orders';
@@ -14,7 +15,7 @@ class Order extends Model {
         'payment_method', 'notes', 'shipped_date', 'delivery_date', 'cancelled_date'
     ];
 
-    private $pdo;
+    protected $pdo;
     
     public function __construct() {
         global $pdo;
@@ -70,14 +71,20 @@ class Order extends Model {
     }
     
     public function getItems($orderId) {
-        $stmt = $this->pdo->prepare("
-            SELECT oi.*, p.name, p.product_image 
-            FROM order_items oi 
-            JOIN products p ON oi.product_id = p.id 
-            WHERE oi.order_id = ?
-        ");
-        $stmt->execute([$orderId]);
-        return $stmt->fetchAll();
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT oi.*, p.name, p.product_image 
+                FROM order_items oi 
+                JOIN products p ON oi.product_id = p.id 
+                WHERE oi.order_id = :order_id
+            ");
+            $stmt->bindValue(':order_id', $orderId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error in getItems: " . $e->getMessage());
+            return [];
+        }
     }
     
     public function updateStatusByPdo($id, $status) {
@@ -88,130 +95,240 @@ class Order extends Model {
     public function getStats() {
         $stmt = $this->pdo->query("SELECT 
             COUNT(*) as total_orders,
-            SUM(total_amount) as total_revenue,
+            SUM(CASE WHEN status = 'delivered' THEN total_amount ELSE 0 END) as total_revenue,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_orders,
             SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered_orders
             FROM orders");
         return $stmt->fetch();
     }
     
+    /**
+     * Create a new order from cart items
+     * @param int $userId User ID
+     * @param array $shippingData Shipping information
+     * @return int|false Order ID on success, false on failure
+     */
     public function createFromCart($userId, $shippingData) {
-        $cartModel = new Cart();
-        $cartSummary = $cartModel->getCartSummary($userId);
-        
-        if (empty($cartSummary['items'])) {
-            return false;
-        }
-        
-        // Validate cart before creating order
-        $cartIssues = $cartModel->validateCart($userId);
-        if (!empty($cartIssues)) {
-            return false; // Cart has issues
-        }
-        
-        $orderData = [
-            'order_number' => generate_order_number(),
-            'user_id' => $userId,
-            'status' => 'pending',
-            'subtotal' => $cartSummary['subtotal'],
-            'tax' => $cartSummary['tax'],
-            'shipping_cost' => $cartSummary['shipping_cost'],
-            'total' => $cartSummary['total'],
-            'shipping_address' => sanitize_string($shippingData['shipping_address']),
-            'shipping_city' => sanitize_string($shippingData['shipping_city']),
-            'shipping_barangay' => sanitize_string($shippingData['shipping_barangay']),
-            'shipping_zip' => sanitize_string($shippingData['shipping_zip']),
-            'payment_method' => sanitize_string($shippingData['payment_method']),
-            'payment_status' => 'pending',
-            'notes' => sanitize_string($shippingData['notes'] ?? '')
-        ];
-        
-        $orderId = db_insert($this->table, $orderData);
-        
-        if ($orderId) {
+        try {
+            $this->pdo->beginTransaction();
+
+            $cartModel = new Cart();
+            $cartSummary = $cartModel->getCartSummary($userId);
+            
+            if (empty($cartSummary['items'])) {
+                throw new Exception('Cart is empty');
+            }
+            
+            // Validate cart before creating order
+            $cartIssues = $cartModel->validateCart($userId);
+            if (!empty($cartIssues)) {
+                throw new Exception('Cart validation failed: ' . implode(', ', $cartIssues));
+            }
+            
+            $orderData = [
+                'order_number' => $this->generateOrderNumber(),
+                'user_id' => $userId,
+                'status' => 'pending',
+                'subtotal' => $cartSummary['subtotal'],
+                'tax' => $cartSummary['tax'],
+                'shipping_cost' => $cartSummary['shipping_cost'],
+                'total' => $cartSummary['total'],
+                'shipping_address' => $this->sanitizeString($shippingData['shipping_address']),
+                'shipping_city' => $this->sanitizeString($shippingData['shipping_city']),
+                'shipping_barangay' => $this->sanitizeString($shippingData['shipping_barangay']),
+                'shipping_zip' => $this->sanitizeString($shippingData['shipping_zip']),
+                'payment_method' => $this->sanitizeString($shippingData['payment_method']),
+                'payment_status' => 'pending',
+                'notes' => $this->sanitizeString($shippingData['notes'] ?? ''),
+                'created_at' => date('Y-m-d H:i:s')
+            ];
+            
+            $stmt = $this->pdo->prepare("
+                INSERT INTO {$this->table} 
+                (" . implode(', ', array_keys($orderData)) . ") 
+                VALUES (" . implode(', ', array_fill(0, count($orderData), '?')) . ")
+            ");
+            
+            $stmt->execute(array_values($orderData));
+            $orderId = $this->pdo->lastInsertId();
+            
+            if (!$orderId) {
+                throw new Exception('Failed to create order');
+            }
+            
             // Transfer cart items to order
             $cartModel->transferToOrder($userId, $orderId);
+            
+            $this->pdo->commit();
             return $orderId;
+            
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Order creation failed: " . $e->getMessage());
+            return false;
         }
-        
-        return false;
     }
     
+    /**
+     * Get order details with items
+     * @param int $orderId Order ID
+     * @param int|null $userId Optional user ID for validation
+     * @return array|null Order data or null if not found
+     */
     public function getOrderWithItems($orderId, $userId = null) {
-        $sql = "
-            SELECT o.*, u.first_name, u.last_name, u.email
-            FROM {$this->table} o
-            INNER JOIN users u ON o.user_id = u.id
-            WHERE o.id = :order_id
-        ";
-        
-        $params = ['order_id' => $orderId];
-        
-        if ($userId) {
-            $sql .= " AND o.user_id = :user_id";
-            $params['user_id'] = $userId;
-        }
-        
-        $order = db_select_one($sql, $params);
-        
-        if (!$order) {
+        try {
+            $sql = "
+                SELECT o.*, u.first_name, u.last_name, u.email,
+                       da.city, da.barangay, da.street, da.zipcode
+                FROM {$this->table} o
+                INNER JOIN users u ON o.user_id = u.id
+                LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
+                WHERE o.id = :order_id
+            ";
+            
+            $params = ['order_id' => $orderId];
+            
+            if ($userId) {
+                $sql .= " AND o.user_id = :user_id";
+                $params['user_id'] = $userId;
+            }
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$order) {
+                return null;
+            }
+            
+            // Get order items
+            $itemsSql = "
+                SELECT oi.*, p.name, p.image
+                FROM order_items oi
+                INNER JOIN products p ON oi.product_id = p.id
+                WHERE oi.order_id = :order_id
+                ORDER BY oi.id ASC
+            ";
+            
+            $stmt = $this->pdo->prepare($itemsSql);
+            $stmt->execute(['order_id' => $orderId]);
+            $order['items'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Structure the delivery address
+            $order['delivery_address'] = [
+                'city' => $order['city'] ?? null,
+                'barangay' => $order['barangay'] ?? null,
+                'street' => $order['street'] ?? null,
+                'zipcode' => $order['zipcode'] ?? null
+            ];
+            
+            // Clean up redundant fields
+            unset(
+                $order['city'],
+                $order['barangay'],
+                $order['street'],
+                $order['zipcode']
+            );
+            
+            return $order;
+            
+        } catch (Exception $e) {
+            error_log("Error fetching order: " . $e->getMessage());
             return null;
         }
-        
-        // Get order items
-        $itemsSql = "
-            SELECT oi.*, p.name, p.image
-            FROM order_items oi
-            INNER JOIN products p ON oi.product_id = p.id
-            WHERE oi.order_id = :order_id
-            ORDER BY oi.id ASC
-        ";
-        
-        $order['items'] = db_select($itemsSql, ['order_id' => $orderId]);
-        
-        return $order;
     }
     
+    /**
+     * Get user's orders with pagination
+     * @param int $userId User ID
+     * @param int $limit Number of records per page
+     * @param int $offset Offset for pagination
+     * @param array|null $statuses Filter by order statuses
+     * @return array Orders with items
+     */
     public function getUserOrders($userId, $limit = 5, $offset = 0, $statuses = null) {
-        $sql = "
-            SELECT o.*, u.first_name, u.last_name, u.email, da.city, da.barangay, da.street, da.zipcode 
-            FROM orders o 
-            JOIN users u ON o.user_id = u.id 
-            LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
-            WHERE o.user_id = ?
-        ";
-        
-        $params = [$userId];
-        
-        if ($statuses) {
-            $placeholders = str_repeat('?,', count($statuses) - 1) . '?';
-            $sql .= " AND o.status IN ($placeholders)";
-            $params = array_merge($params, $statuses);
+        try {
+            $sql = "
+                SELECT o.*, u.first_name, u.last_name, u.email,
+                       da.city, da.barangay, da.street, da.zipcode
+                FROM orders o 
+                JOIN users u ON o.user_id = u.id 
+                LEFT JOIN delivery_addresses da ON o.delivery_address_id = da.id
+                WHERE o.user_id = :user_id
+            ";
+            
+            $params = ['user_id' => $userId];
+            
+            if ($statuses && is_array($statuses)) {
+                $placeholders = [];
+                foreach ($statuses as $key => $status) {
+                    $paramName = "status$key";
+                    $placeholders[] = ":$paramName";
+                    $params[$paramName] = $status;
+                }
+                $sql .= " AND o.status IN (" . implode(',', $placeholders) . ")";
+            }
+            
+            $sql .= " ORDER BY o.order_date DESC LIMIT :limit OFFSET :offset";
+            $params['limit'] = (int)$limit;
+            $params['offset'] = (int)$offset;
+            
+            $stmt = $this->pdo->prepare($sql);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue(":$key", $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            
+            $stmt->execute();
+            $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Get items for each order and structure address data
+            foreach ($orders as &$order) {
+                $order['items'] = $this->getItems($order['id']);
+                
+                // Structure the delivery address
+                $order['delivery_address'] = [
+                    'city' => $order['city'] ?? null,
+                    'barangay' => $order['barangay'] ?? null,
+                    'street' => $order['street'] ?? null,
+                    'zipcode' => $order['zipcode'] ?? null
+                ];
+                
+                // Clean up redundant fields
+                unset(
+                    $order['city'],
+                    $order['barangay'],
+                    $order['street'],
+                    $order['zipcode']
+                );
+            }
+            
+            return $orders;
+            
+        } catch (Exception $e) {
+            error_log("Error in getUserOrders: " . $e->getMessage());
+            return [];
         }
-        
-        $sql .= " ORDER BY o.order_date DESC LIMIT ? OFFSET ?";
-        $params[] = (int)$limit;
-        $params[] = (int)$offset;
-        
-        $stmt = $this->pdo->prepare($sql);
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key + 1, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+    }
+    
+    /**
+     * Get order items
+     * @param int $orderId Order ID
+     * @return array Order items
+     */
+    private function getOrderItems($orderId) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT oi.*, p.name, p.product_image 
+                FROM order_items oi 
+                JOIN products p ON oi.product_id = p.id 
+                WHERE oi.order_id = :order_id
+            ");
+            $stmt->execute(['order_id' => $orderId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log("Error fetching order items: " . $e->getMessage());
+            return [];
         }
-        $stmt->execute();
-        $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Add items to each order
-        foreach ($orders as &$order) {
-            $order['items'] = $this->getItems($order['id']);
-            $order['delivery_address'] = [
-                'city' => $order['city'],
-                'barangay' => $order['barangay'],
-                'street' => $order['street'],
-                'zipcode' => $order['zipcode']
-            ];
-        }
-        
-        return $orders;
     }
     
     public function getUserOrdersCount($userId, $statuses = null) {
@@ -229,46 +346,49 @@ class Order extends Model {
         return $stmt->fetchColumn();
     }
     
+    /**
+     * Update order status
+     * @param int $orderId Order ID
+     * @param string $status New status
+     * @param string|null $notes Optional notes
+     * @return bool Success status
+     */
     public function updateStatus($orderId, $status, $notes = null) {
-        // Debug: Log the update data
-        error_log("Updating order {$orderId} to status: {$status}");
-        
-        // Prepare the update data
-        $updateData = ['status' => $status];
-        
-        // Set dates based on status
-        switch ($status) {
-            case 'shipped':
-                $updateData['shipped_date'] = date('Y-m-d H:i:s');
-                break;
-            case 'delivered':
-                $updateData['delivery_date'] = date('Y-m-d H:i:s');
-                break;
+        try {
+            $updateData = ['status' => $status];
+            
+            // Set dates based on status
+            switch ($status) {
+                case 'shipped':
+                    $updateData['shipped_date'] = date('Y-m-d H:i:s');
+                    break;
+                case 'delivered':
+                    $updateData['delivery_date'] = date('Y-m-d H:i:s');
+                    break;
+                case 'cancelled':
+                    $updateData['cancelled_date'] = date('Y-m-d H:i:s');
+                    break;
+            }
+            
+            if ($notes) {
+                $updateData['notes'] = $notes;
+            }
+            
+            $setParts = [];
+            $params = [];
+            foreach ($updateData as $key => $value) {
+                $setParts[] = "$key = :$key";
+                $params[$key] = $value;
+            }
+            $params['id'] = $orderId;
+            
+            $sql = "UPDATE {$this->table} SET " . implode(', ', $setParts) . " WHERE id = :id";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($params);
+        } catch (Exception $e) {
+            error_log("Error updating order status: " . $e->getMessage());
+            return false;
         }
-        
-        // Build the SQL query dynamically based on the update data
-        $setParts = [];
-        $params = [];
-        foreach ($updateData as $key => $value) {
-            $setParts[] = "{$key} = ?";
-            $params[] = $value;
-        }
-        $params[] = $orderId; // Add orderId for WHERE clause
-        
-        $sql = "UPDATE orders SET " . implode(', ', $setParts) . " WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        $result = $stmt->execute($params);
-        
-        if (!$result) {
-            error_log("Status update failed: " . json_encode($stmt->errorInfo()));
-        }
-        
-        // Handle stock restoration for cancelled orders
-        if ($status === 'cancelled') {
-            $this->restoreStock($orderId);
-        }
-        
-        return $result;
     }
     
     public function restoreStock($orderId) {
@@ -386,7 +506,38 @@ class Order extends Model {
             return false;
         }
         
-        return $this->updateStatus($orderId, 'cancelled');
+        try {
+            $this->pdo->beginTransaction();
+
+            // Get order items before cancelling
+            $items = $this->getItems($orderId);
+
+            // Update order status
+            $result = $this->updateStatus($orderId, 'cancelled', $reason);
+            if (!$result) {
+                throw new Exception("Failed to update order status");
+            }
+
+            // Restore stock for each item
+            foreach ($items as $item) {
+                $stmt = $this->pdo->prepare("
+                    UPDATE products 
+                    SET stock_quantity = stock_quantity + ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([
+                    $item['quantity'],
+                    $item['product_id']
+                ]);
+            }
+
+            $this->pdo->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Error cancelling order: " . $e->getMessage());
+            return false;
+        }
     }
 
     // Get all orders with pagination for admin view
@@ -488,6 +639,23 @@ class Order extends Model {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchColumn();
+    }
+
+    /**
+     * Generate unique order number
+     * @return string Order number
+     */
+    private function generateOrderNumber() {
+        return 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
+    }
+
+    /**
+     * Sanitize string input
+     * @param string $input Input string
+     * @return string Sanitized string
+     */
+    private function sanitizeString($input) {
+        return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
     }
 }
 ?>

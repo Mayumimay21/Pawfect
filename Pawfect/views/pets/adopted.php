@@ -5,7 +5,6 @@
         <h1 class="fw-bold">Happy Endings</h1>
         <p class="lead text-muted">Meet our successfully adopted pets and their loving families</p>
     </div>
-    
     <div class="row">
         <?php if (empty($adoptedPets)): ?>
             <div class="col-12 text-center py-5">

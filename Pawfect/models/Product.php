@@ -138,7 +138,8 @@ class Product {
             $params[] = "%" . $query . "%";
         }
 
-        $sql .= " ORDER BY id DESC LIMIT {$limit} OFFSET {$offset}";
+        // Order by stock quantity (in-stock first) and then by ID
+        $sql .= " ORDER BY CASE WHEN stock_quantity = 0 THEN 1 ELSE 0 END, id DESC LIMIT {$limit} OFFSET {$offset}";
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
@@ -261,6 +262,29 @@ class Product {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getTopSoldProducts($limit = 4) {
+        $sql = "SELECT p.*, SUM(oi.quantity) as total_sold 
+                FROM products p 
+                JOIN order_items oi ON p.id = oi.product_id 
+                JOIN orders o ON oi.order_id = o.id 
+                WHERE o.status IN ('delivered', 'shipped') 
+                AND p.is_archived = FALSE 
+                GROUP BY p.id 
+                ORDER BY total_sold DESC 
+                LIMIT " . (int)$limit;
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function getTopOutOfStockProducts($limit = 4) {
+        $sql = "SELECT * FROM products WHERE stock_quantity < 5 ORDER BY stock_quantity ASC LIMIT " . (int)$limit;
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll();
     }
 }
 ?>

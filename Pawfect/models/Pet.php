@@ -11,7 +11,15 @@ class Pet
 
     public function getAll()
     {
-        $stmt = $this->pdo->query("SELECT * FROM pets WHERE is_adopted = FALSE ORDER BY id DESC");
+        $stmt = $this->pdo->query("
+            SELECT p.* 
+            FROM pets p 
+            LEFT JOIN pet_order_items poi ON p.id = poi.pet_id 
+            LEFT JOIN pet_orders po ON poi.order_id = po.id 
+            WHERE p.is_adopted = FALSE 
+            AND (po.status IS NULL OR po.status != 'pending')
+            ORDER BY p.id DESC
+        ");
         return $stmt->fetchAll();
     }
 
@@ -27,9 +35,11 @@ class Pet
         $stmt = $this->pdo->query("
             SELECT p.*, u.first_name, u.last_name 
             FROM pets p 
-            JOIN users u ON p.adopted_by_user_id = u.id 
-            WHERE p.is_adopted = TRUE 
-            ORDER BY p.id DESC
+            JOIN pet_order_items poi ON p.id = poi.pet_id
+            JOIN pet_orders po ON poi.order_id = po.id
+            JOIN users u ON po.user_id = u.id 
+            WHERE po.status = 'approved'
+            ORDER BY po.approved_date DESC
         ");
         return $stmt->fetchAll();
     }
@@ -42,14 +52,14 @@ class Pet
 
     public function create($data)
     {
-        $stmt = $this->pdo->prepare("INSERT INTO pets (name, pet_image, type, gender, age, breed, description) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        return $stmt->execute([$data['name'], $data['pet_image'], $data['type'], $data['gender'], $data['age'], $data['breed'], $data['description']]);
+        $stmt = $this->pdo->prepare("INSERT INTO pets (name, pet_image, type, gender, age, breed, description, price) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([$data['name'], $data['pet_image'], $data['type'], $data['gender'], $data['age'], $data['breed'], $data['description'], $data['price']]);
     }
 
     public function update($id, $data)
     {
-        $stmt = $this->pdo->prepare("UPDATE pets SET name = ?, pet_image = ?, type = ?, gender = ?, age = ?, breed = ?, description = ? WHERE id = ?");
-        return $stmt->execute([$data['name'], $data['pet_image'], $data['type'], $data['gender'], $data['age'], $data['breed'], $data['description'], $id]);
+        $stmt = $this->pdo->prepare("UPDATE pets SET name = ?, pet_image = ?, type = ?, gender = ?, age = ?, breed = ?, description = ?, price = ? WHERE id = ?");
+        return $stmt->execute([$data['name'], $data['pet_image'], $data['type'], $data['gender'], $data['age'], $data['breed'], $data['description'], $data['price'], $id]);
     }
 
     public function delete($id)
@@ -104,7 +114,15 @@ class Pet
 
     public function getAvailablePets()
     {
-        $stmt = $this->pdo->query("SELECT * FROM pets WHERE is_adopted = FALSE ORDER BY id DESC");
+        $stmt = $this->pdo->query("
+            SELECT p.* 
+            FROM pets p 
+            LEFT JOIN pet_order_items poi ON p.id = poi.pet_id 
+            LEFT JOIN pet_orders po ON poi.order_id = po.id 
+            WHERE p.is_adopted = FALSE 
+            AND (po.status IS NULL OR po.status != 'pending')
+            ORDER BY p.id DESC
+        ");
         return $stmt->fetchAll();
     }
 
@@ -388,5 +406,41 @@ class Pet
     {
         // Reuse the existing getTotalCount method, passing only relevant filters
         return $this->getTotalCount($species, null, null, null, null, $query);
+    }
+
+    public function updateStatus($petId, $status) {
+        $stmt = $this->pdo->prepare("
+            UPDATE pets 
+            SET is_adopted = ?, 
+                adopted_by_user_id = CASE WHEN ? = 'adopted' THEN ? ELSE NULL END
+            WHERE id = ?
+        ");
+        return $stmt->execute([
+            $status === 'adopted' ? 1 : 0,
+            $status,
+            $_SESSION['user_id'] ?? null,
+            $petId
+        ]);
+    }
+
+    public function updatePetStatus($petId, $status, $adoptedBy = null)
+    {
+        $sql = "UPDATE pets SET status = ?, adopted_by = ? WHERE id = ?";
+        $params = [$status, $adoptedBy, $petId];
+        
+        return $this->pdo->prepare($sql)->execute($params);
+    }
+
+    public function getAdoptedPetsByUser($userId) {
+        $stmt = $this->pdo->prepare("
+            SELECT p.*, po.created_at as adoption_date, po.status as order_status
+            FROM pets p 
+            JOIN pet_order_items poi ON p.id = poi.pet_id
+            JOIN pet_orders po ON poi.order_id = po.id
+            WHERE po.user_id = ? AND po.status = 'approved'
+            ORDER BY po.approved_date DESC
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll();
     }
 }

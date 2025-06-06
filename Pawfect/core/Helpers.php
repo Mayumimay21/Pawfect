@@ -426,3 +426,33 @@ function getRelatedProducts($productId, $limit = 4)
         return [];
     }
 }
+
+/**
+ * Flash Message Helper Functions
+ */
+function setFlashMessage($type, $message) {
+    if (!isset($_SESSION['flash_messages'])) {
+        $_SESSION['flash_messages'] = [];
+    }
+    $_SESSION['flash_messages'][$type][] = $message;
+}
+
+function getFlashMessages() {
+    $messages = $_SESSION['flash_messages'] ?? [];
+    unset($_SESSION['flash_messages']);
+    return $messages;
+}
+
+function hasFlashMessages() {
+    return !empty($_SESSION['flash_messages']);
+}
+
+function getFlashMessage($type) {
+    $messages = $_SESSION['flash_messages'][$type] ?? [];
+    unset($_SESSION['flash_messages'][$type]);
+    return $messages;
+}
+
+function hasFlashMessage($type) {
+    return !empty($_SESSION['flash_messages'][$type]);
+}

@@ -8,8 +8,12 @@ class Model {
     protected $table;
     protected $fillable = [];
     protected $primaryKey = 'id';
+    protected $pdo;
     
     public function __construct() {
+        global $pdo;
+        $this->pdo = $pdo;
+        
         if (!$this->table) {
             // Auto-generate table name from class name if not set
             $className = get_class($this);
@@ -43,12 +47,10 @@ class Model {
     /**
      * Get all records
      */
-    public function all($orderBy = null) {
+    public function getAll() {
         $sql = "SELECT * FROM {$this->table}";
-        if ($orderBy) {
-            $sql .= " ORDER BY {$orderBy}";
-        }
-        return db_select($sql);
+        $stmt = $this->pdo->query($sql);
+        return $stmt->fetchAll();
     }
     
     /**
@@ -85,7 +87,9 @@ class Model {
             $sql .= " LIMIT {$limit}";
         }
         
-        return db_select($sql, $params);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
     
     /**
@@ -114,7 +118,9 @@ class Model {
             $sql .= " WHERE " . implode(' AND ', $whereClause);
         }
         
-        $result = db_select_one($sql, $params);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $result = $stmt->fetch();
         return (int)($result['count'] ?? 0);
     }
     
@@ -131,7 +137,13 @@ class Model {
         $data['created_at'] = now();
         $data['updated_at'] = now();
         
-        return db_insert($this->table, $data);
+        $columns = implode(', ', array_keys($data));
+        $values = implode(', ', array_fill(0, count($data), '?'));
+        
+        $sql = "INSERT INTO {$this->table} ({$columns}) VALUES ({$values})";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(array_values($data));
+        return $this->pdo->lastInsertId();
     }
     
     /**
@@ -146,14 +158,25 @@ class Model {
         // Add updated timestamp
         $data['updated_at'] = now();
         
-        return db_update($this->table, $data, "{$this->primaryKey} = :id", ['id' => $id]);
+        $setClause = [];
+        foreach ($data as $column => $value) {
+            $setClause[] = "{$column} = :{$column}";
+        }
+        
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $setClause) . " WHERE {$this->primaryKey} = :id";
+        $data['id'] = $id;
+        
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute($data);
     }
     
     /**
      * Delete record
      */
     public function delete($id) {
-        return db_delete($this->table, "{$this->primaryKey} = :id", ['id' => $id]);
+        $sql = "DELETE FROM {$this->table} WHERE {$this->primaryKey} = :id";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute(['id' => $id]);
     }
     
     /**
@@ -179,7 +202,9 @@ class Model {
             $sql .= " LIMIT {$limit}";
         }
         
-        return db_select($sql, $params);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
     }
     
     /**
@@ -221,7 +246,9 @@ class Model {
         
         $sql .= " LIMIT {$perPage} OFFSET {$offset}";
         
-        $data = db_select($sql, $params);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $data = $stmt->fetchAll();
         
         return [
             'data' => $data,

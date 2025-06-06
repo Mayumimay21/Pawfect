@@ -3,33 +3,8 @@
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-2">
-            <div class="card">
-                <div class="card-header gradient-bg text-white">
-                    <h6 class="mb-0">Admin Menu</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="<?php echo BASE_URL; ?>/admin" class="list-group-item list-group-item-action">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/pets" class="list-group-item list-group-item-action">
-                        <i class="fas fa-paw"></i> Manage Pets
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/products" class="list-group-item list-group-item-action">
-                        <i class="fas fa-box"></i> Manage Products
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/orders" class="list-group-item list-group-item-action">
-                        <i class="fas fa-shopping-cart"></i> Manage Orders
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/users" class="list-group-item list-group-item-action">
-                        <i class="fas fa-users"></i> Manage Users
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/settings" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                </div>
-            </div>
+            <?php require_once 'views/layout/admin_sidebar.php'; ?>
         </div>
-        
         <div class="col-md-10">
             <h1 class="fw-bold mb-4">Website Settings</h1>
             

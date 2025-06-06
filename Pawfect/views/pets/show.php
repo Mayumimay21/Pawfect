@@ -41,9 +41,15 @@
             <?php else: ?>
                 <div class="d-grid gap-2">
                     <?php if (isLoggedIn()): ?>
-                        <button onclick="adoptPet(<?php echo $pet['id']; ?>, '<?php echo $pet['name']; ?>')" class="btn btn-warning btn-lg">
-                            <i class="fas fa-home"></i> Adopt <?php echo $pet['name']; ?>
+                        <?php if (isset($pet['in_pawket']) && $pet['in_pawket']): ?>
+                            <a href="<?php echo BASE_URL; ?>/pawket" class="btn btn-success btn-lg">
+                                <i class="fas fa-paw"></i> In Your Pawket
+                            </a>
+                        <?php else: ?>
+                            <button class="btn btn-warning btn-lg adopt-pet" data-id="<?php echo $pet['id']; ?>" data-name="<?php echo $pet['name']; ?>">
+                                <i class="fas fa-home"></i> Add to Pawket
                         </button>
+                        <?php endif; ?>
                     <?php else: ?>
                         <a href="<?php echo BASE_URL; ?>/login" class="btn btn-warning btn-lg">
                             Login to Adopt
@@ -57,5 +63,80 @@
         </div>
     </div>
 </div>
+
+<!-- Adoption Confirmation Modal -->
+<div class="modal fade" id="adoptModal" tabindex="-1" aria-labelledby="adoptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="adoptModalLabel">Confirm Adoption</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to add <span id="petName" class="fw-bold"></span> to your pawket?</p>
+                <p class="text-muted small">You can review your selection and complete the adoption process in your pawket.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmAdopt">
+                    <i class="fas fa-home me-2"></i> Add to Pawket
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const adoptModal = new bootstrap.Modal(document.getElementById('adoptModal'));
+    const adoptButtons = document.querySelectorAll('.adopt-pet');
+    let currentPetId = null;
+
+    // Function to close the modal
+    function closeModal() {
+        adoptModal.hide();
+    }
+
+    // Add click event listeners to all close buttons
+    document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(button => {
+        button.addEventListener('click', closeModal);
+    });
+
+    adoptButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            currentPetId = this.dataset.id;
+            const petName = this.dataset.name;
+            document.getElementById('petName').textContent = petName;
+            adoptModal.show();
+        });
+    });
+
+    document.getElementById('confirmAdopt').addEventListener('click', function() {
+        if (!currentPetId) return;
+
+        const formData = new FormData();
+        formData.append('pet_id', currentPetId);
+
+        fetch('<?php echo BASE_URL; ?>/pawket/add', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '<?php echo BASE_URL; ?>/pawket';
+            } else {
+                alert(data.message || 'Failed to add pet to pawket');
+                closeModal();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while adding the pet to your pawket');
+            closeModal();
+        });
+    });
+});
+</script>
 
 <?php require_once 'views/layout/footer.php'; ?>

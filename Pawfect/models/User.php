@@ -13,7 +13,7 @@ class User extends Model {
         'email_verified_at', 'status', 'role'
     ];
     
-    private $pdo;
+    protected $pdo;
     
     public function __construct() {
         global $pdo;
@@ -259,21 +259,37 @@ class User extends Model {
     }
 
     public function findOrCreateDeliveryAddress($userId, $city, $barangay, $street, $zipcode) {
-        // Check if address already exists for the user
-        $stmt = $this->pdo->prepare("SELECT id FROM delivery_addresses WHERE user_id = ? AND city = ? AND barangay = ? AND street = ? AND zipcode = ? LIMIT 1");
-        $stmt->execute([$userId, $city, $barangay, $street, $zipcode]);
-        $existingAddress = $stmt->fetch();
+        try {
+            $this->pdo->beginTransaction();
 
-        if ($existingAddress) {
-            return $existingAddress['id'];
-        } else {
+            // Check if address already exists for the user
+            $stmt = $this->pdo->prepare("SELECT id FROM delivery_addresses WHERE user_id = ? AND city = ? AND barangay = ? AND street = ? AND zipcode = ? LIMIT 1");
+            $stmt->execute([$userId, $city, $barangay, $street, $zipcode]);
+            $existingAddress = $stmt->fetch();
+
+            if ($existingAddress) {
+                $this->pdo->commit();
+                return $existingAddress['id'];
+            }
+
             // Create new address
             $stmt = $this->pdo->prepare("INSERT INTO delivery_addresses (user_id, city, barangay, street, zipcode) VALUES (?, ?, ?, ?, ?)");
-            if ($stmt->execute([$userId, $city, $barangay, $street, $zipcode])) {
-                return $this->pdo->lastInsertId();
-            } else {
-                return false; // Indicate failure
+            if (!$stmt->execute([$userId, $city, $barangay, $street, $zipcode])) {
+                throw new Exception("Failed to create delivery address");
             }
+
+            $addressId = $this->pdo->lastInsertId();
+            if (!$addressId) {
+                throw new Exception("Failed to get delivery address ID");
+            }
+
+            $this->pdo->commit();
+            return $addressId;
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Error in findOrCreateDeliveryAddress: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return false;
         }
     }
 

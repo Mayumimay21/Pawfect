@@ -41,7 +41,8 @@ class ProductController extends Controller {
             'filterType' => $type,
             'filterMinPrice' => $minPrice,
             'filterMaxPrice' => $maxPrice,
-            'filterStockStatus' => $stockStatus
+            'filterStockStatus' => $stockStatus,
+            'pageTitle' => 'Pawducts'
         ]);
     }
     

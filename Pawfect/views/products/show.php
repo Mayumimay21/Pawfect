@@ -37,7 +37,7 @@
             
             <div class="d-grid gap-2">
                 <?php if (isLoggedIn() && $product['stock_quantity'] > 0): ?>
-                    <button onclick="addToCart(<?php echo $product['id']; ?>)" class="btn btn-primary btn-lg">
+                    <button class="btn btn-primary btn-lg add-to-cart" data-id="<?php echo $product['id']; ?>" data-name="<?php echo $product['name']; ?>">
                         <i class="fas fa-cart-plus"></i> Add to Cart
                     </button>
                 <?php elseif (!isLoggedIn()): ?>
@@ -49,17 +49,40 @@
                         Out of Stock
                     </button>
                 <?php endif; ?>
-                <a href="<?php echo BASE_URL; ?>/products" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Products
+                <a href="<?php echo BASE_URL; ?>/pawducts" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Pawducts
                 </a>
             </div>
         </div>
     </div>
 </div>
 
-<?php require_once 'views/layout/footer.php'; ?>
+<!-- Add to Cart Confirmation Modal -->
+<div class="modal fade" id="addToCartModal" tabindex="-1" aria-labelledby="addToCartModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToCartModalLabel">Add to Cart</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to add <span id="productName" class="fw-bold"></span> to your cart?</p>
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity:</label>
+                    <input type="number" class="form-control" id="quantity" min="1" max="<?php echo $product['stock_quantity']; ?>" value="1">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmAddToCart">
+                    <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<!-- Added to Cart Modal -->
+<!-- Added to Cart Success Modal -->
 <div class="modal fade" id="addedToCartModal" tabindex="-1" aria-labelledby="addedToCartModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -81,46 +104,73 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Add to cart functionality
-    const addToCartButton = document.querySelector('.btn-primary.btn-lg'); // Assuming this is the Add to Cart button
-    if (addToCartButton && typeof addToCartButton.onclick === 'function') {
-        // Wrap the existing onclick function to trigger the modal
-        const originalOnClick = addToCartButton.onclick;
-        addToCartButton.onclick = function() {
-            originalOnClick.apply(this, arguments);
-            // Assuming the original onclick triggers the backend call and on success, you'll handle the modal there
-            // For now, this is just adding the modal HTML. The JS to trigger it needs to be integrated with the backend response.
-        };
-    } else if (addToCartButton) {
-        // If not using onclick, find the form or use event delegation
-         addToCartButton.addEventListener('click', function(event) {
-             // Prevent default form submission if it's a submit button within a form
-             event.preventDefault(); // Prevent default form submission if it's a submit button
-             
-             const productId = this.dataset.productId; // Assuming product ID is stored in a data attribute
-             // You would typically get the product ID from the element clicked or a surrounding form
-             // For this example, I'll assume the product ID is available.
-             const product_id = <?php echo $product['id']; ?>; // Get product ID from PHP
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    const addToCartModal = document.getElementById('addToCartModal');
+    const addedToCartModal = document.getElementById('addedToCartModal');
+    let currentProductId = null;
 
-             // Call the global addToCart function from main.js
-             // main.js will handle the fetch request and return a promise
-             window.PawfectApp.addToCart(product_id)
+    // Initialize Bootstrap modals
+    const bsAddToCartModal = new bootstrap.Modal(addToCartModal);
+    const bsAddedToCartModal = new bootstrap.Modal(addedToCartModal);
+
+    // Handle Add to Cart button clicks
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            currentProductId = this.dataset.id;
+            const productName = this.dataset.name;
+            document.getElementById('productName').textContent = productName;
+            document.getElementById('quantity').value = 1;
+            bsAddToCartModal.show();
+        });
+    });
+
+    // Handle modal close buttons
+    document.querySelectorAll('.btn-close, [data-bs-dismiss="modal"]').forEach(button => {
+        button.addEventListener('click', function() {
+            const modal = this.closest('.modal');
+            if (modal === addToCartModal) {
+                bsAddToCartModal.hide();
+            } else if (modal === addedToCartModal) {
+                bsAddedToCartModal.hide();
+            }
+        });
+    });
+
+    // Handle Continue Shopping button
+    document.querySelector('#addedToCartModal .btn-secondary').addEventListener('click', function() {
+        bsAddedToCartModal.hide();
+    });
+
+    // Handle Confirm Add to Cart button
+    document.getElementById('confirmAddToCart').addEventListener('click', function() {
+        if (!currentProductId) return;
+
+        const quantity = document.getElementById('quantity').value;
+        const formData = new FormData();
+        formData.append('product_id', currentProductId);
+        formData.append('quantity', quantity);
+
+        fetch('<?php echo BASE_URL; ?>/cart/add', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Show the specific added to cart modal
-                        const addedToCartModal = new bootstrap.Modal(document.getElementById('addedToCartModal'));
-                        addedToCartModal.show();
+                bsAddToCartModal.hide();
+                bsAddedToCartModal.show();
                     } else {
-                        // Show generic alert modal for errors
-                        window.showAlertModal(data.message, 'danger');
+                alert(data.message || 'Failed to add item to cart');
+                bsAddToCartModal.hide();
                     }
                 })
                 .catch(error => {
-                    console.error("Error adding to cart:", error);
-                    // Show generic alert modal for fetch errors
-                    window.showAlertModal("An error occurred while adding to cart.", 'danger');
+            console.error('Error:', error);
+            alert('An error occurred while adding the item to your cart');
+            bsAddToCartModal.hide();
                 });
          });
-    }
 });
 </script>
+
+<?php require_once 'views/layout/footer.php'; ?>

@@ -33,7 +33,7 @@ switch ($path) {
         $controller->index();
         break;
     
-    case '/products':
+    case '/pawducts':
         require_once 'controllers/ProductController.php';
         $controller = new ProductController();
         $controller->index();
@@ -135,7 +135,7 @@ switch ($path) {
         $controller->pets();
         break;
     
-    case '/admin/products':
+    case '/admin/pawducts':
         require_once 'controllers/AdminController.php';
         $controller = new AdminController();
         $controller->products();
@@ -159,6 +159,84 @@ switch ($path) {
         $controller->settings();
         break;
     
+    case '/user/pet-orders':
+        require_once 'controllers/PetOrderController.php';
+        $controller = new PetOrderController();
+        $controller->index();
+        break;
+    
+    case '/pet-orders':
+        require_once 'controllers/PetOrderController.php';
+        $controller = new PetOrderController();
+        $controller->index();
+        break;
+    
+    case '/pet-orders/show':
+        require_once 'controllers/PetOrderController.php';
+        $controller = new PetOrderController();
+        $controller->show($_GET['id']);
+        break;
+    
+    case '/pet-orders/cancel':
+        require_once 'controllers/PetOrderController.php';
+        $controller = new PetOrderController();
+        $controller->cancel($_POST['order_id']);
+        break;
+    
+    case '/pet-orders/update-status':
+        require_once 'controllers/PetOrderController.php';
+        $controller = new PetOrderController();
+        $controller->updateStatus($_POST['order_id']);
+        break;
+    
+    case '/admin/pet-orders':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->adoptionOrders();
+        break;
+    
+    case '/admin/pet-orders/update-status':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->updatePetOrderStatus();
+        break;
+    
+    case '/admin/orders/update-status':
+        require_once 'controllers/AdminController.php';
+        $controller = new AdminController();
+        $controller->updateOrderStatus();
+        break;
+    
+    case '/pawket':
+        require_once 'controllers/PawketController.php';
+        $controller = new PawketController();
+        $controller->index();
+        break;
+    
+    case '/pawket/add':
+        require_once 'controllers/PawketController.php';
+        $controller = new PawketController();
+        $controller->add();
+        break;
+    
+    case '/pawket/remove':
+        require_once 'controllers/PawketController.php';
+        $controller = new PawketController();
+        $controller->remove();
+        break;
+    
+    case '/pawket/checkout':
+        require_once 'controllers/PawketController.php';
+        $controller = new PawketController();
+        $controller->checkout();
+        break;
+    
+    case '/pawket/process-order':
+        require_once 'controllers/PawketController.php';
+        $controller = new PawketController();
+        $controller->processOrder();
+        break;
+    
     default:
         // Handle dynamic routes
         if (preg_match('/^\/pet\/(\d+)$/', $path, $matches)) {
@@ -175,4 +253,5 @@ switch ($path) {
         }
         break;
 }
+
 ?>

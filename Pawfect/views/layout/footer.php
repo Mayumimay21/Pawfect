@@ -8,14 +8,14 @@
             <div class="col-md-4">
                 <h5>Quick Links</h5>
                 <ul class="list-unstyled">
-                    <li><a href="<?php echo BASE_URL; ?>/pets" class="text-white-50">Adopt Pets</a></li>
-                    <li><a href="<?php echo BASE_URL; ?>/products" class="text-white-50">Pet Products</a></li>
-                    <li><a href="<?php echo BASE_URL; ?>/adopted-pets" class="text-white-50">Success Stories</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/pets" class="text-white">Adopt Pets</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/pawducts" class="text-white">Pet Pawducts</a></li>
+                    <li><a href="<?php echo BASE_URL; ?>/adopted-pets" class="text-white">Success Stories</a></li>
                 </ul>
             </div>
             <div class="col-md-4">
                 <h5>Contact Info</h5>
-                <p class="text-white-50">
+                <p class="text-white">
                     <i class="fas fa-envelope"></i> info@pawfect.com<br>
                     <i class="fas fa-phone"></i> (555) 123-4567<br>
                     <i class="fas fa-map-marker-alt"></i> 123 Pet Street, City
@@ -24,7 +24,7 @@
         </div>
         <hr class="my-4">
         <div class="text-center">
-            <p>&copy; 2024 Pawfect Pet Shop. All rights reserved.</p>
+            <p>&copy; <?php echo date('Y') ?> Pawfect Pet Shop. All rights reserved.</p>
         </div>
     </div>
 </footer>

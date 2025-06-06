@@ -3,31 +3,7 @@
 <div class="container-fluid py-4">
     <div class="row">
         <div class="col-md-2">
-            <div class="card">
-                <div class="card-header gradient-bg text-white">
-                    <h6 class="mb-0">Admin Menu</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="<?php echo BASE_URL; ?>/admin" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/pets" class="list-group-item list-group-item-action">
-                        <i class="fas fa-paw"></i> Manage Pets
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/products" class="list-group-item list-group-item-action">
-                        <i class="fas fa-box"></i> Manage Products
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/orders" class="list-group-item list-group-item-action">
-                        <i class="fas fa-shopping-cart"></i> Manage Orders
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/users" class="list-group-item list-group-item-action">
-                        <i class="fas fa-users"></i> Manage Users
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/settings" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                </div>
-            </div>
+            <?php require_once 'views/layout/admin_sidebar.php'; ?>
         </div>
         
         <div class="col-md-10">
@@ -129,6 +105,63 @@
                                     <h3 class="text-success"><?php echo $orderStats['delivered_orders']; ?></h3>
                                     <p class="text-muted">Delivered</p>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title">Top Sold Pawducts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Pawduct</th>
+                                            <th>Sold Count</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($topSoldProducts as $product): ?>
+                                        <tr>
+                                            <td><?php echo $product['name']; ?></td>
+                                            <td><?php echo $product['total_sold']; ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title text-danger">Pawducts Running Low!</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Pawduct</th>
+                                            <th>Stock Quantity</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($topOutOfStockProducts as $product): ?>
+                                        <tr>
+                                            <td><?php echo $product['name']; ?></td>
+                                            <td><?php echo $product['stock_quantity']; ?></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

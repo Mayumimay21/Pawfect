@@ -19,7 +19,13 @@ function isLoggedIn() {
 }
 
 function isAdmin() {
-    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+    if (!isLoggedIn()) return false;
+    
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $user = $stmt->fetch();
+    return $user && $user['role'] === 'admin';
 }
 
 function getCurrentUser() {

@@ -14,7 +14,7 @@
                 <a href="<?php echo BASE_URL; ?>/pets" class="btn btn-lg fw-bold me-3 mb-2" style="background: #fff; color: #FF8C00; border-radius: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-size: 1.1rem;">
                     <i class="fas fa-heart"></i> Adopt a Pet
                 </a>
-                <a href="<?php echo BASE_URL; ?>/products" class="btn btn-lg fw-bold mb-2" style="background: #FFD700; color: #fff; border-radius: 30px; font-size: 1.1rem;">
+                <a href="<?php echo BASE_URL; ?>/pawducts" class="btn btn-lg fw-bold mb-2" style="background: #FFD700; color: #fff; border-radius: 30px; font-size: 1.1rem;">
                     <i class="fas fa-shopping-bag"></i> Shop Products
                 </a>
             </div>
@@ -88,7 +88,7 @@
                                     Login to Purchase
                                 </a>
                             <?php endif; ?>
-                            <a href="<?php echo BASE_URL; ?>/product/<?php echo $product['id']; ?>" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold">
+                            <a href="<?php echo BASE_URL; ?>/pawduct/<?php echo $product['id']; ?>" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold">
                                 View Details
                             </a>
                         </div>
@@ -98,7 +98,7 @@
             <?php endforeach; ?>
         </div>
         <div class="text-center">
-            <a href="<?php echo BASE_URL; ?>/products" class="btn btn-outline-warning btn-lg rounded-pill fw-bold" style="color: #FF8C00; border: 2px solid #FFD700;">
+            <a href="<?php echo BASE_URL; ?>/pawducts" class="btn btn-outline-warning btn-lg rounded-pill fw-bold" style="color: #FF8C00; border: 2px solid #FFD700;">
                 View All Products <i class="fas fa-arrow-right"></i>
             </a>
         </div>

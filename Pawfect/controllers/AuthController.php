@@ -46,7 +46,6 @@ class AuthController extends Controller {
                 'email' => $_POST['email'],
                 'password' => $_POST['password'],
                 'phone' => $_POST['phone'],
-                'address' => $_POST['address']
             ];
             
             $userModel = new User();

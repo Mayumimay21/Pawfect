@@ -11,53 +11,28 @@ $filter_params = http_build_query(array_filter([
 
 <?php require_once 'views/layout/header.php'; ?>
 
+
 <div class="container-fluid py-4">
     <div class="row">
-        <!-- Admin Sidebar -->
         <div class="col-md-2">
-            <div class="card">
-                <div class="card-header gradient-bg text-white">
-                    <h6 class="mb-0">Admin Menu</h6>
-                </div>
-                <div class="list-group list-group-flush">
-                    <a href="<?php echo BASE_URL; ?>/admin" class="list-group-item list-group-item-action">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/pets" class="list-group-item list-group-item-action">
-                        <i class="fas fa-paw"></i> Manage Pets
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/products" class="list-group-item list-group-item-action active">
-                        <i class="fas fa-box"></i> Manage Products
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/orders" class="list-group-item list-group-item-action">
-                        <i class="fas fa-shopping-cart"></i> Manage Orders
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/users" class="list-group-item list-group-item-action">
-                        <i class="fas fa-users"></i> Manage Users
-                    </a>
-                    <a href="<?php echo BASE_URL; ?>/admin/settings" class="list-group-item list-group-item-action">
-                        <i class="fas fa-cog"></i> Settings
-                    </a>
-                </div>
-            </div>
+            <?php require_once 'views/layout/admin_sidebar.php'; ?>
         </div>
-        
         <!-- Main Content -->
         <div class="col-md-10">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="fw-bold">Manage Products</h1>
+                <h1 class="fw-bold">Manage Pawducts</h1>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                    <i class="fas fa-plus"></i> Add New Product
+                    <i class="fas fa-plus"></i> Add New Pawduct
                 </button>
             </div>
             
             <!-- Search and Filter Form -->
             <div class="row mb-4">
                 <div class="col-md-12">
-                    <form method="GET" action="<?php echo BASE_URL; ?>/admin/products">
+                    <form method="GET" action="<?php echo BASE_URL; ?>/admin/pawducts">
                         <div class="row g-3 align-items-center">
                             <div class="col-md">
-                                <input type="text" name="q" class="form-control" placeholder="Search products..." value="<?php echo htmlspecialchars($searchQuery ?? ''); ?>">
+                                <input type="text" name="q" class="form-control" placeholder="Search pawducts..." value="<?php echo htmlspecialchars($searchQuery ?? ''); ?>">
                             </div>
                             <div class="col-md">
                                 <select name="is_archived" class="form-select">
@@ -69,7 +44,7 @@ $filter_params = http_build_query(array_filter([
                             <div class="col-md-auto">
                                 <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Filter</button>
                                 <?php if (!empty($searchQuery) || ($isArchivedFilter !== null && $isArchivedFilter !== '')): ?>
-                                    <a href="<?php echo BASE_URL; ?>/admin/products" class="btn btn-outline-secondary">Clear Filters</a>
+                                    <a href="<?php echo BASE_URL; ?>/admin/pawducts" class="btn btn-outline-secondary">Clear Filters</a>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -99,7 +74,7 @@ $filter_params = http_build_query(array_filter([
                                     <tr>
                                         <td colspan="8" class="text-center py-4">
                                             <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                                            <h5 class="text-muted">No products found</h5>
+                                            <h5 class="text-muted">No pawducts found</h5>
                                             <p class="text-muted">Try adjusting your filters or adding new products.</p>
                                         </td>
                                     </tr>
@@ -178,7 +153,7 @@ $filter_params = http_build_query(array_filter([
                         <ul class="pagination justify-content-center">
                             <?php
                                 // Generate base URL for pagination links, keeping filters
-                                $pagination_base_url = BASE_URL . '/admin/products?';
+                                $pagination_base_url = BASE_URL . '/admin/pawducts?';
                                 $current_filters = [];
                                 if (!empty($searchQuery)) $current_filters['q'] = urlencode($searchQuery);
                                 if ($isArchivedFilter !== null && $isArchivedFilter !== '') $current_filters['is_archived'] = urlencode($isArchivedFilter);
@@ -228,16 +203,16 @@ $filter_params = http_build_query(array_filter([
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Add New Product</h5>
+                <h5 class="modal-title">Add New Pawduct</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" enctype="multipart/form-data" action="<?php echo BASE_URL; ?>/admin/products">
+            <form method="POST" enctype="multipart/form-data" action="<?php echo BASE_URL; ?>/admin/pawducts">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="create">
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Product Name</label>
+                            <label class="form-label">Pawduct Name</label>
                             <input type="text" name="name" class="form-control" required>
                         </div>
                         <div class="col-md-6">
@@ -266,7 +241,7 @@ $filter_params = http_build_query(array_filter([
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Product Image</label>
+                        <label class="form-label">Pawduct Image</label>
                         <input type="file" name="product_image" class="form-control" accept="image/*" required>
                     </div>
                 </div>
@@ -284,10 +259,10 @@ $filter_params = http_build_query(array_filter([
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Edit Product</h5>
+                <h5 class="modal-title">Edit Pawduct</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" enctype="multipart/form-data" action="<?php echo BASE_URL; ?>/admin/products">
+            <form method="POST" enctype="multipart/form-data" action="<?php echo BASE_URL; ?>/admin/pawducts">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" id="editProductId">
@@ -295,7 +270,7 @@ $filter_params = http_build_query(array_filter([
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Product Name</label>
+                            <label class="form-label">Pawduct Name</label>
                             <input type="text" name="name" id="editProductName" class="form-control" required>
                         </div>
                         <div class="col-md-6">
@@ -324,14 +299,14 @@ $filter_params = http_build_query(array_filter([
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">Product Image</label>
+                        <label class="form-label">Pawduct Image</label>
                         <input type="file" name="product_image" class="form-control" accept="image/*">
                         <small class="text-muted">Leave empty to keep current image</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Product</button>
+                    <button type="submit" class="btn btn-primary">Update Pawduct</button>
                 </div>
             </form>
         </div>

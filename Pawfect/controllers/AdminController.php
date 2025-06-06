@@ -3,6 +3,8 @@ require_once 'models/User.php';
 require_once 'models/Pet.php';
 require_once 'models/Product.php';
 require_once 'models/Order.php';
+require_once 'models/PetOrder.php';
+require_once 'models/Category.php';
 
 class AdminController extends Controller {
     public function __construct() {
@@ -22,12 +24,16 @@ class AdminController extends Controller {
         $productStats = $productModel->getStats();
         $orderStats = $orderModel->getStats();
         $users = $userModel->getAll();
+        $topSoldProducts = $productModel->getTopSoldProducts();
+        $topOutOfStockProducts = $productModel->getTopOutOfStockProducts();
         
         $this->view('admin/dashboard', [
             'petStats' => $petStats,
             'productStats' => $productStats,
             'orderStats' => $orderStats,
-            'users' => $users
+            'users' => $users,
+            'topSoldProducts' => $topSoldProducts,
+            'topOutOfStockProducts' => $topOutOfStockProducts
         ]);
     }
     
@@ -126,12 +132,14 @@ class AdminController extends Controller {
             'filterGender' => $gender,
             'filterBreed' => $breed,
             'filterMinAge' => $minAge,
-            'filterMaxAge' => $maxAge
+            'filterMaxAge' => $maxAge,
+            'pageTitle' => 'Manage Pets'
         ]);
     }
     
     public function products() {
         $productModel = new Product();
+        $categoryModel = new Category();
         
         // Pagination settings for admin
         $limit = 10; // Number of rows per page
@@ -143,10 +151,9 @@ class AdminController extends Controller {
         $isArchived = $_GET['is_archived'] ?? null;
 
         // Get paginated products and total count based on search and filters
-        // This assumes getAdminPaginated and getAdminTotalCount in Product.php
-        // are updated to handle search query and is_archived filter.
-        $products = $productModel->getAdminPaginated($limit, $offset, $query, $isArchived); // Add new parameters
-        $totalProducts = $productModel->getAdminTotalCount($query, $isArchived); // Add new parameters
+        $products = $productModel->getAdminPaginated($limit, $offset, $query, $isArchived);
+        $totalProducts = $productModel->getAdminTotalCount($query, $isArchived);
+        $categories = $categoryModel->getAll();
 
         $totalPages = ceil($totalProducts / $limit);
         
@@ -170,13 +177,13 @@ class AdminController extends Controller {
                     'stock_quantity' => $_POST['stock_quantity'],
                     'type' => $_POST['type'],
                     'price' => $_POST['price'],
-                    'description' => $_POST['description']
+                    'description' => $_POST['description'],
+                    'category_id' => $_POST['category_id']
                 ];
                 $productModel->create($data);
             } elseif ($action === 'update') {
-                $imagePath = $_POST['current_product_image'] ?? null; // Keep existing image by default
+                $imagePath = $_POST['current_product_image'] ?? null;
                 
-                // Check if a new image was uploaded
                 if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === UPLOAD_ERR_OK) {
                     $uploadDir = __DIR__ . '/../uploads/products/';
                     if (!is_dir($uploadDir)) {
@@ -188,7 +195,6 @@ class AdminController extends Controller {
                     if (move_uploaded_file($_FILES['product_image']['tmp_name'], $targetFile)) {
                         $imagePath = '/uploads/products/' . $filename;
                         
-                        // Delete old image if it exists and is not the default image
                         if (!empty($_POST['current_product_image']) && 
                             $_POST['current_product_image'] !== '/assets/images/default-product.png' && 
                             file_exists(__DIR__ . '/..' . $_POST['current_product_image'])) {
@@ -203,7 +209,8 @@ class AdminController extends Controller {
                     'stock_quantity' => $_POST['stock_quantity'],
                     'type' => $_POST['type'],
                     'price' => $_POST['price'],
-                    'description' => $_POST['description']
+                    'description' => $_POST['description'],
+                    'category_id' => $_POST['category_id']
                 ];
                 $productModel->update($_POST['id'], $data);
             } elseif ($action === 'archive') {
@@ -212,21 +219,21 @@ class AdminController extends Controller {
                 $productModel->restore($_POST['id']);
             }
             
-             // Redirect to the current page and state (active/archived) after action
-             $redirectUrl = '/admin/products?page=' . $page;
-             if ($isArchived) {
-                 $redirectUrl .= '&is_archived=1';
-             }
-             $this->redirect($redirectUrl);
+            $redirectUrl = '/admin/pawducts?page=' . $page;
+            if ($isArchived) {
+                $redirectUrl .= '&is_archived=1';
+            }
+            $this->redirect($redirectUrl);
         }
         
         $this->view('admin/products', [
-            'products' => $products, // Pass the filtered/searched products
-            'archivedProducts' => [], // No longer needed to pass separately if filtering is done in model
+            'products' => $products,
+            'categories' => $categories,
             'currentPage' => $page,
-            'totalPages' => $totalPages, // Total pages for the filtered/searched list
-            'searchQuery' => $query, // Pass search query to view
-            'isArchivedFilter' => $isArchived // Pass is_archived filter to view
+            'totalPages' => $totalPages,
+            'searchQuery' => $query,
+            'isArchivedFilter' => $isArchived,
+            'pageTitle' => 'Manage Pawducts'
         ]);
     }
     
@@ -273,7 +280,8 @@ class AdminController extends Controller {
             'searchQuery' => $query, // Pass search query to view
             'filterStatus' => $status, // Pass status filter to view
             'filterStartDate' => $startDate, // Pass start date filter to view
-            'filterEndDate' => $endDate // Pass end date filter to view
+            'filterEndDate' => $endDate, // Pass end date filter to view
+            'pageTitle' => 'Manage Orders'
         ]);
     }
     
@@ -318,7 +326,8 @@ class AdminController extends Controller {
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'searchQuery' => $query, // Pass search query to view
-            'filterRole' => $role // Pass role filter to view
+            'filterRole' => $role, // Pass role filter to view
+            'pageTitle' => 'Manage Users'
         ]);
     }
     
@@ -352,17 +361,99 @@ class AdminController extends Controller {
             $this->redirect('/admin/settings');
         }
         
-        $this->view('admin/settings');
+        $this->view('admin/settings', [
+            'pageTitle' => 'Settings'
+        ]);
     }
 
-    public function index() {
-        $petModel = new Pet();
-        $pets = $petModel->getAllPets();
-        
-        // Pass all pets to the view
-        $this->view('admin/index', [
-            'pets' => $pets
+    public function adoptionOrders() {
+        $petOrderModel = new PetOrder();
+        $limit = 10;
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $offset = ($page - 1) * $limit;
+        $query = $_GET['q'] ?? '';
+        $status = $_GET['status'] ?? null;
+
+        // Get paginated pet orders and total count
+        $orders = $petOrderModel->getAdminPaginated($limit, $offset, $query, $status);
+        $totalOrders = $petOrderModel->getAdminTotalCount($query, $status);
+        $totalPages = ceil($totalOrders / $limit);
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $orderId = $_POST['order_id'];
+            $newStatus = $_POST['status'];
+            $petOrderModel->updateStatus($orderId, $newStatus);
+            $_SESSION['success'] = 'Pet order status updated!';
+            $this->redirect('/admin/pet-orders?page=' . $page);
+        }
+
+        $this->view('admin/pet_orders', [
+            'orders' => $orders,
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'searchQuery' => $query,
+            'filterStatus' => $status,
+            'pageTitle' => 'Manage Pet Orders'
         ]);
+    }
+
+    public function updatePetOrderStatus() {
+        if (!isAdmin()) {
+            setFlashMessage('error', 'You do not have permission to update pet order status.');
+            $this->redirect('/admin/pet-orders');
+        }
+
+        $orderId = $_POST['order_id'] ?? null;
+        $status = $_POST['status'] ?? '';
+        $adminNotes = $_POST['admin_notes'] ?? null;
+
+        if (!$orderId || !in_array($status, ['pending', 'approved', 'rejected', 'cancelled'])) {
+            setFlashMessage('error', 'Invalid request parameters.');
+            $this->redirect('/admin/pet-orders');
+        }
+
+        $petOrderModel = new PetOrder();
+        $petModel = new Pet();
+
+        try {
+            // Update the order status
+            $success = $petOrderModel->updateStatus($orderId, $status, $adminNotes);
+            setFlashMessage('success', 'Pet order status updated successfully.');
+        } catch (Exception $e) {
+            error_log("Error in updatePetOrderStatus: " . $e->getMessage());
+            setFlashMessage('error', 'Failed to update pet order status: ' . $e->getMessage());
+        }
+
+        $this->redirect('/admin/pet-orders');
+    }
+
+    public function updateOrderStatus() {
+        if (!isAdmin()) {
+            setFlashMessage('error', 'You do not have permission to update order status.');
+            $this->redirect('/admin/orders');
+        }
+
+        $orderId = $_POST['order_id'] ?? null;
+        $status = $_POST['status'] ?? '';
+        $adminNotes = $_POST['admin_notes'] ?? null;
+
+        if (!$orderId || !in_array($status, ['pending', 'processing', 'shipped', 'delivered', 'cancelled'])) {
+            setFlashMessage('error', 'Invalid request parameters.');
+            $this->redirect('/admin/orders');
+        }
+
+        $orderModel = new Order();
+
+        try {
+            // Update the order status
+            $success = $orderModel->updateStatus($orderId, $status, $adminNotes);
+            setFlashMessage('success', 'Order status updated successfully.');
+        } catch (Exception $e) {
+            error_log("Error in updateOrderStatus: " . $e->getMessage());
+            setFlashMessage('error', 'Failed to update order status: ' . $e->getMessage());
+        }
+
+        $this->redirect('/admin/orders');
     }
 }
 ?>

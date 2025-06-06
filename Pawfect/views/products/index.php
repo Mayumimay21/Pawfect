@@ -18,13 +18,13 @@ $filter_params = http_build_query(array_filter([
         <div class="col-md-3">
             <div class="card shadow-sm mb-4">
                 <div class="card-header" style="background-color: #FF8C00; color: white;">
-                    <h5 class="mb-0">Filter Products</h5>
+                    <h5 class="mb-0">Filter Pawducts</h5>
                 </div>
                 <div class="card-body" style="background-color: #fff8e1;">
-                    <form method="GET" action="<?php echo BASE_URL; ?>/products">
+                    <form method="GET" action="<?php echo BASE_URL; ?>/pawducts">
                         <div class="mb-3">
                             <label class="form-label" style="color: #FF8C00;">Search</label>
-                            <input type="text" name="query" class="form-control" placeholder="Search products..." style="border-color: #FFD700;" value="<?php echo htmlspecialchars($filterQuery ?? ''); ?>">
+                            <input type="text" name="query" class="form-control" placeholder="Search pawducts..." style="border-color: #FFD700;" value="<?php echo htmlspecialchars($filterQuery ?? ''); ?>">
                         </div>
                         
                         <div class="mb-3">
@@ -60,7 +60,7 @@ $filter_params = http_build_query(array_filter([
                         
                         <button type="submit" class="btn btn-primary w-100" style="background-color: #FF8C00; border-color: #FF8C00;">Apply Filters</button>
                         <?php if (!empty($filterQuery) || !empty($filterType) || !empty($filterMinPrice) || !empty($filterMaxPrice)): ?>
-                            <a href="<?php echo BASE_URL; ?>/products" class="btn btn-outline-secondary w-100 mt-2" style="background-color: #FFD700; color: #333; border-color: #FFD700;">Reset Filters</a>
+                            <a href="<?php echo BASE_URL; ?>/pawducts" class="btn btn-outline-secondary w-100 mt-2" style="background-color: #FFD700; color: #333; border-color: #FFD700;">Reset Filters</a>
                         <?php endif; ?>
                     </form>
                 </div>
@@ -70,7 +70,7 @@ $filter_params = http_build_query(array_filter([
         <!-- Main Content -->
         <div class="col-md-9">
     <div class="text-center mb-5">
-                <h1 class="fw-bold" style="color: #FF8C00; font-family: 'Quicksand', Nunito, sans-serif;">Pet Products</h1>
+                <h1 class="fw-bold" style="color: #FF8C00; font-family: 'Quicksand', Nunito, sans-serif;">Pet Pawducts</h1>
         <p class="lead text-muted">Everything your furry friends need to stay happy and healthy</p>
     </div>
     
@@ -79,7 +79,7 @@ $filter_params = http_build_query(array_filter([
                 <?php if (empty($products)): ?>
                     <div class="col-12 text-center py-5">
                         <i class="fas fa-shopping-bag fa-4x text-muted mb-3"></i>
-                        <h3 class="text-muted">No products found</h3>
+                        <h3 class="text-muted">No pawducts found</h3>
                         <p class="text-muted">Try adjusting your filters</p>
                     </div>
                 <?php else: ?>
@@ -109,7 +109,9 @@ $filter_params = http_build_query(array_filter([
                                     </p>
                                     <div class="d-grid gap-2">
                                         <?php if (isset($_SESSION['user_id']) && $product['stock_quantity'] > 0): ?>
-                                            <button onclick="addToCart(<?php echo htmlspecialchars($product['id']); ?>)" class="btn btn-primary btn-sm rounded-pill fw-bold">
+                                            <button class="btn btn-primary add-to-cart rounded-pill" 
+                                                    data-id="<?php echo htmlspecialchars($product['id']); ?>"
+                                                    data-name="<?php echo htmlspecialchars($product['name']); ?>">
                                                 <i class="fas fa-cart-plus"></i> Add to Cart
                                             </button>
                                         <?php elseif (!isset($_SESSION['user_id'])): ?>
@@ -138,7 +140,7 @@ $filter_params = http_build_query(array_filter([
                     <?php if (isset($totalPages) && $totalPages > 1): ?>
                         <?php
                         // Generate base URL for pagination links, keeping filters
-                        $pagination_base_url = BASE_URL . '/products?';
+                        $pagination_base_url = BASE_URL . '/pawducts?';
                         $current_filters = [];
                         if (!empty($filterQuery)) $current_filters['query'] = urlencode($filterQuery);
                         if (!empty($filterType)) $current_filters['type'] = urlencode($filterType);
@@ -166,22 +168,46 @@ $filter_params = http_build_query(array_filter([
     </div>
 </div>
 
-<!-- Added to Cart Modal -->
-<div class="modal fade" id="addedToCartModal" tabindex="-1" aria-labelledby="addedToCartModalLabel" aria-hidden="true">
+<!-- Add to Cart Confirmation Modal -->
+<div class="modal fade" id="productListAddToCartModal" tabindex="-1" aria-labelledby="productListAddToCartModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addedToCartModalLabel">Item Added to Cart!</h5>
+                <h5 class="modal-title" id="productListAddToCartModalLabel">Add to Cart</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body text-center">
-                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                <p>The product has been successfully added to your shopping cart.</p>
+            <div class="modal-body">
+                <p>Are you sure you want to add <span id="productListProductName" class="fw-bold"></span> to your cart?</p>
+                <div class="mb-3">
+                    <label for="productListQuantity" class="form-label">Quantity:</label>
+                    <input type="number" class="form-control" id="productListQuantity" min="1" value="1">
+                    <small class="text-muted">Available stock: <span id="productListAvailableStock"></span></small>
+                </div>
             </div>
-            <div class="modal-footer justify-content-center">
-                <a href="<?php echo BASE_URL; ?>/cart" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> View Cart</a>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continue Shopping</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="confirmProductListAddToCart()">
+                    <i class="fas fa-cart-plus me-2"></i> Add to Cart
+                </button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Added to Cart Success Modal -->
+<div id="addedToCartModal" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog" style="margin: 15% auto; background-color: #fefefe; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h5>Item Added to Cart!</h5>
+            <button type="button" onclick="closeModal('addedToCartModal')" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+        </div>
+        <div class="modal-body text-center" style="margin-bottom: 15px;">
+            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+            <p>The product has been successfully added to your shopping cart.</p>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: center; gap: 10px;">
+            <a href="<?php echo BASE_URL; ?>/cart" class="btn btn-primary"><i class="fas fa-shopping-cart"></i> View Cart</a>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('addedToCartModal')">Continue Shopping</button>
         </div>
     </div>
 </div>
@@ -232,56 +258,167 @@ $filter_params = http_build_query(array_filter([
     background: #FF8C00;
     border-color: #FF8C00;
 }
+
+.modal-custom {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.modal-body {
+    margin-bottom: 15px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    color: #666;
+}
+
+.close-modal:hover {
+    color: #000;
+}
 </style>
 
 <script>
-// Simple function to handle reset button for the form
-document.getElementById('resetFilters').addEventListener('click', () => {
-    window.location.href = '<?php echo BASE_URL; ?>/products';
-});
+let currentProductId = null;
+let currentMaxStock = 0;
 
-// addToCart function - Keep this if cart logic is still client-side (AJAX)
-// If cart is purely server-side, this function should be removed and replaced with a form submission or link.
-function addToCart(productId) {
+function showProductListAddToCartModal(productId, productName, stockQuantity) {
+    currentProductId = productId;
+    currentMaxStock = stockQuantity;
+    
+    // Update modal content
+    document.getElementById('productListProductName').textContent = productName;
+    document.getElementById('productListAvailableStock').textContent = stockQuantity;
+    document.getElementById('productListQuantity').max = stockQuantity;
+    document.getElementById('productListQuantity').value = 1;
+    
+    // Show the modal using Bootstrap's Modal class
+    const modalElement = document.getElementById('productListAddToCartModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+function confirmProductListAddToCart() {
+    if (!currentProductId) return;
+
+    const quantity = parseInt(document.getElementById('productListQuantity').value);
+    if (quantity < 1 || quantity > currentMaxStock) {
+        alert('Please enter a valid quantity');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('product_id', currentProductId);
+    formData.append('quantity', quantity);
+
+    // Hide the add to cart modal first
+    const addToCartModal = bootstrap.Modal.getInstance(document.getElementById('productListAddToCartModal'));
+    if (addToCartModal) {
+        addToCartModal.hide();
+    }
+
     fetch('<?php echo BASE_URL; ?>/cart/add', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ product_id: productId, quantity: 1 })
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Assuming showAlertModal is defined globally or in another included script
-            // If not, it needs to be defined here or in a file included before this script block.
-            showAlertModal('addedToCartModal');
-            // Optional: Update cart count on the page
-            // updateCartCount(); 
+            // Update cart count if it exists
+            const cartCount = document.querySelector('.cart-count');
+            if (cartCount) {
+                cartCount.textContent = data.cart_count;
+                cartCount.style.display = data.cart_count > 0 ? 'inline-block' : 'none';
+            }
+            
+            // Show success message using the alert modal
+            const alertModalElement = document.getElementById('alertModal');
+            const alertModal = new bootstrap.Modal(alertModalElement);
+            document.getElementById('alertModalBody').innerHTML = '<div class="alert alert-success mb-0">Item successfully added to cart!</div>';
+            alertModal.show();
         } else {
-            // Handle error, e.g., show an alert
-            alert('Failed to add to cart: ' + data.message);
+            // Show error message using the alert modal
+            const alertModalElement = document.getElementById('alertModal');
+            const alertModal = new bootstrap.Modal(alertModalElement);
+            document.getElementById('alertModalBody').innerHTML = '<div class="alert alert-danger mb-0">' + data.message + '</div>';
+            alertModal.show();
         }
     })
     .catch(error => {
-        console.error('Error adding to cart:', error);
-        alert('An error occurred while adding to cart.');
+        console.error('Error:', error);
+        // Show error message using the alert modal
+        const alertModalElement = document.getElementById('alertModal');
+        const alertModal = new bootstrap.Modal(alertModalElement);
+        document.getElementById('alertModalBody').innerHTML = '<div class="alert alert-danger mb-0">An error occurred while adding the item to your cart.</div>';
+        alertModal.show();
     });
 }
 
-// Assuming showAlertModal is defined globally or in another included script
-// If not, it needs to be defined here or in a file included before this script block.
-// Example placeholder if not defined elsewhere:
-/*
-function showAlertModal(modalId) {
-    const modalElement = document.getElementById(modalId);
-    if (modalElement) {
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-    }
-}
-*/
+// Initialize when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Get all add to cart buttons
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
 
+    // Add click event listeners to all add to cart buttons
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.dataset.id;
+            const productName = this.dataset.name;
+            const stockText = this.closest('.card').querySelector('.text-muted').textContent;
+            const stockMatch = stockText.match(/Stock: (\d+)/);
+            const stockQuantity = stockMatch ? parseInt(stockMatch[1]) : 0;
+            
+            showProductListAddToCartModal(productId, productName, stockQuantity);
+        });
+    });
+
+    // Handle quantity input validation
+    const quantityInput = document.getElementById('productListQuantity');
+    if (quantityInput) {
+        quantityInput.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            if (value < 1) {
+                this.value = 1;
+            } else if (value > currentMaxStock) {
+                this.value = currentMaxStock;
+            }
+        });
+    }
+});
 </script>
 
 <?php require_once 'views/layout/footer.php'; ?>
